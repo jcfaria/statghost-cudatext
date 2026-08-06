@@ -1,0 +1,6 @@
+# Local / lab noise
+_loadtest/
+*.aux
+*.log
+.DS_Store
+Thumbs.db

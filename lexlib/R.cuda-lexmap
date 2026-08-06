@@ -1,0 +1,18 @@
+[map]
+Marked block=-
+Note1=Comment
+Note2=Comment
+Note3=Comment
+Comment=Comment
+Symbol=Symbol
+Number=Number
+String=String
+Id=Id
+Programing=IdKeyword
+Datasets=Id1
+
+[comments]
+styles_cmt=Comment,Note1,Note2,Note3
+styles_str=String
+str1=
+str2=

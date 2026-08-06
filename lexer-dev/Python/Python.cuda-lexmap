@@ -1,0 +1,24 @@
+[comments]
+styles_cmt=Comment,Note1,Note2,Note3
+styles_str=String
+str1=
+str2=
+
+[map]
+Note1=Comment
+Note2=Comment
+Note3=Comment
+Number=Number
+String=String
+Symbol=Symbol
+Comment=Comment
+Id=Id
+Id keyword=Id1
+Id keyword def=IdKeyword
+Id function=Id4
+Id func name=Label
+Id types=Id2
+Id named literals=Id2
+Id exception=Id3
+Id const=TagId
+Decorator=TagId

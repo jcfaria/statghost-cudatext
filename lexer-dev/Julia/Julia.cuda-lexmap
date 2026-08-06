@@ -1,0 +1,20 @@
+[comments]
+styles_cmt=Comment,Note1,Note2,Note3
+styles_str=String
+str1=#=
+str2==#
+
+[map]
+Note1=Comment
+Note2=Comment
+Note3=Comment
+Symbol=Symbol
+Number=Number
+String=String
+Comment=Comment
+Id=Id
+Id keyword=IdKeyword
+Id const=Id2
+Id class=Id1
+@Id=TagId
+String2=String2
