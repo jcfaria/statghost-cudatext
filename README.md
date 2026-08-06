@@ -12,7 +12,7 @@ CudaText (product decision D29 / packs 16–17).
 | Path | Role |
 |------|------|
 | `lexer-dev/` | Workshop LCF packs (edit here, validate in CudaText) |
-| `lexlib/` | Promoted packs ready to copy into CudaText `data/lexlib` |
+| `lexer/` | Promoted packs (same tree STATghost used to ship for Console HG) |
 | `plugins/` | Future VP-EB-1 / VP-EB-1b plugins (send-to-sniper, TOC, Tools-like) |
 | `docs/` | Sync notes; contract pointers back to STATghost `w_todo` |
 
@@ -20,9 +20,10 @@ CudaText (product decision D29 / packs 16–17).
 
 ```
 CudaText (editor workspace)
-    ↑ plugins/ + lexlib/     ← this repo
-STATghost (sniper HWNDs: Console|Plot|Explorer)
-    ↑ lexer/ beside EXE      ← still vendored in jcfaria/statghost for shipping
+    ↑ lexer/ + plugins/          ← this repo (canonical)
+STATghost (sniper)
+    ↑ sync → lexer/ beside EXE   ← copy from this repo at promote/package time
+    ↑ pack_choice.json           ← stays in STATghost (Settings only)
 ```
 
 - **Geometry / Explorer dock** = STATghost only (`window_geometry.json`, VP-EX-1b).
@@ -33,11 +34,11 @@ STATghost (sniper HWNDs: Console|Plot|Explorer)
 ## Promote lexers
 
 1. Edit under `lexer-dev/<Lang>/`.
-2. Copy `*.lcf` + `*.cuda-lexmap` → `lexlib/`.
-3. Install into CudaText `data/lexlib` (lab: GitHub CudaText app and/or
-   portable Dropbox `&_port/cudatext`).
-4. Sync the same files into STATghost `lexer/` when shipping the Console HG
-   (script or manual — keep packs identical).
+2. Copy `*.lcf` + `*.cuda-lexmap` → `lexer/` (and `custom/` if needed).
+3. Install into CudaText `data/lexlib`.
+4. Sync into STATghost `lexer/` for Console shipping:
+   `powershell -File docs/sync_to_statghost.ps1` (from this repo), or
+   STATghost `powershell -File scripts/sync_lexer_from_cudatext.ps1`.
 
 ## Licence
 
