@@ -1,19 +1,10 @@
-lexer/ — promoted CudaText / STATghost Console packs
+lexer/ — promoted packs (canonical)
 =======================================================
 Updated: 2026-08-06
-Repo: jcfaria/statghost-cudatext (canonical)
+Repo: jcfaria/statghost-cudatext
 
-Edit source: `../lexer-dev/`. After validate in CudaText, copy packs here,
-then sync into:
-  - CudaText `data/lexlib`
-  - STATghost `lexer/` (Console beside EXE; excludes `pack_choice.json`)
+Edit: `../lexer-dev/`. Then copy here. Install into CudaText `data/lexlib`.
+STATghost does **not** mirror this tree in source — `src/build.ps1` copies
+it to `src/_out/lexer/` and overlays product `pack_choice.json`.
 
-Contents
---------
-- `R.lcf` + `R.cuda-lexmap` — STATghost slim R
-- `Python.lcf` + `Python.cuda-lexmap`
-- `Julia.lcf` + `Julia.cuda-lexmap`
-- `Text file.lcf` + `Text file.cuda-lexmap`
-- `custom/` — lab copies not auto-loaded (LexerName collision)
-
-`pack_choice.json` is **not** stored here (STATghost Settings only).
+Contents: R | Python | Julia | Text file (+ `custom/` lab).

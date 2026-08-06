@@ -1,20 +1,14 @@
 docs/ — companion notes
 =======================
 
-Product SAP/CPR for bridges live in the STATghost repo (mirrored packs):
+SAP/CPR bridges: STATghost `w_todo` packs 16/17 · D29.
 
-  w_todo/w_pt/br/16_sap_editor_bridges.txt
-  w_todo/w_pt/br/17_cpr_editor_bridges.txt
-  w_todo/w_pt/br/02_decisions_v0.txt  (D29)
+Canonical packs: `../lexer-dev/` → `../lexer/`.
 
-This companion owns **both** `lexer-dev/` (workshop) and `lexer/` (promoted).
+STATghost source does not mirror LCF. Optional lab copy beside EXE:
 
-Sync checklist
---------------
-  [ ] Edit lexer-dev/
-  [ ] Promote → lexer/
-  [ ] Copy lexer/ → CudaText data/lexlib
-  [ ] Sync lexer/ → STATghost lexer/ (see sync_to_statghost.ps1)
-  [ ] Smoke STATghost Console HG + open a sample in CudaText
+  powershell -File docs/sync_to_statghost.ps1
+
+(or run STATghost `src/build.ps1`, which does the same into `_out/lexer`).
 
 Updated: 2026-08-06
