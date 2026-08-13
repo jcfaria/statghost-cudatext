@@ -1,0 +1,21 @@
+[info]
+title=STATghost
+desc=Send selection or current line to Armed STATghost (clipboard sniper, VP-EB-1)
+type=cudatext-plugin
+subdir=cuda_statghost
+homepage=https://github.com/jcfaria/statghost-cudatext
+
+[item1]
+section=events
+events=on_start2
+
+[item2]
+section=commands
+caption=STATghost\Send selection
+method=send_selection
+hotkey=Ctrl+E
+
+[item3]
+section=commands
+caption=STATghost\Send current line
+method=send_current_line
