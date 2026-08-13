@@ -13,7 +13,6 @@ events=on_start2
 section=commands
 caption=STATghost\Send selection
 method=send_selection
-hotkey=Ctrl+E
 
 [item3]
 section=commands

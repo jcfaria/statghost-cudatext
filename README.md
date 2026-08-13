@@ -31,7 +31,7 @@ Restart CudaText (`cuda_jcf/run.sh`). Then:
 - **Plugins → STATghost → Send selection** (empty selection → current line)
 - **Plugins → STATghost → Send current line**
 - **Tools → Send to STATghost** / **Send current line**
-- Default hotkey: **Ctrl+E** (Command Palette → F9 to rebind)
+- Shortcuts: none by default — bind in Command Palette → **F9**
 
 Engine = whatever STATghost has Armed (R / Python / Julia). Same chunk
 sent twice without a clipboard change is skipped (same as a human Copy).

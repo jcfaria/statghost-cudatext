@@ -24,10 +24,8 @@ fi
 ln -sfn "$PLUGIN_SRC" "$TARGET"
 echo "Plugin: $TARGET -> $PLUGIN_SRC"
 
-python3 "$HERE/seed_keys.py" "$CUDA_ROOT/app/settings/keys.json"
-
 echo
 echo "Reinicie o CudaText (./cuda_jcf/run.sh)."
 echo "Menu: Plugins -> STATghost  e  Tools -> Send to STATghost"
-echo "Atalho default: Ctrl+E (Keys / Command Palette F9 para mudar)."
+echo "Atalhos: Command Palette (F9) — o utilizador define as teclas."
 echo "STATghost tem de estar a correr e Armed."
