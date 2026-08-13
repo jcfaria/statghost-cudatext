@@ -41,13 +41,48 @@ def _send_payload(text, mode):
     """Copy UTF-8 text to the system clipboard (same as a human Copy)."""
     if text is None or text.strip() == '':
         msg_status(PLUGIN + ': nothing to send (' + mode + ')')
-        return
+        return False
     app_proc(PROC_SET_CLIP, text)
     n = len(text)
     msg_status(
         PLUGIN + ': sent ' + mode + ' (' + str(n)
         + ' chars) — STATghost must be Armed'
     )
+    return True
+
+
+def _is_blank_or_hash_comment(line):
+    s = (line or '').strip()
+    return s == '' or s.startswith('#')
+
+
+def _selection_last_line():
+    """Last line index of a real selection, or None."""
+    carets = ed.get_carets()
+    if not carets:
+        return None
+    x, y, x2, y2 = carets[0]
+    if x2 < 0:
+        return None
+    if (y, x) <= (y2, x2):
+        ay, bx, by = y, x2, y2
+    else:
+        ay, bx, by = y2, x, y
+    last = by
+    if bx == 0 and by > ay:
+        last = by - 1
+    return last
+
+
+def _advance_caret_after(from_y):
+    """Col 0 of next code line; skip blanks and # comments. EOF: stay."""
+    n = ed.get_line_count()
+    y = from_y + 1
+    while y < n:
+        if not _is_blank_or_hash_comment(ed.get_text_line(y)):
+            ed.set_caret(0, y)
+            return
+        y += 1
 
 
 def _cap_plain(item):
@@ -72,12 +107,18 @@ class Command:
         """Send selection; if empty, send the current line (CPR VP-EB-1)."""
         sel = _selection_text()
         if sel.strip() != '':
-            _send_payload(sel, 'selection')
+            last = _selection_last_line()
+            if _send_payload(sel, 'selection') and last is not None:
+                _advance_caret_after(last)
             return
-        _send_payload(_current_line_text(), 'line')
+        y = _caret_line_index()
+        if _send_payload(_current_line_text(), 'line') and y is not None:
+            _advance_caret_after(y)
 
     def send_current_line(self):
-        _send_payload(_current_line_text(), 'line')
+        y = _caret_line_index()
+        if _send_payload(_current_line_text(), 'line') and y is not None:
+            _advance_caret_after(y)
 
     def on_start2(self, ed_self):
         self._ensure_tools_menu()
