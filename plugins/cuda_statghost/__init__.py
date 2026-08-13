@@ -7,6 +7,11 @@ from cudatext import app_proc, PROC_SET_CLIP
 from cudatext import msg_status
 from cudatext import menu_proc, MENU_ENUM, MENU_ADD
 
+try:
+    from .statement import extend_statement, join_lines
+except ImportError:
+    from statement import extend_statement, join_lines
+
 PLUGIN = 'STATghost'
 TOOLS_CAP = 'Tools'
 TOOLS_TAG = 'statghost-eb1'
@@ -29,8 +34,7 @@ def _selection_text():
     return ''
 
 
-def _current_line_text():
-    y = _caret_line_index()
+def _line_text(y):
     if y is None:
         return ''
     line = ed.get_text_line(y)
@@ -85,6 +89,29 @@ def _advance_caret_after(from_y):
         y += 1
 
 
+def _skip_to_code_line(y):
+    """If caret is on blank/#, start at the next code line (sniper chunk)."""
+    n = ed.get_line_count()
+    if y is None:
+        return None
+    while y < n and _is_blank_or_hash_comment(ed.get_text_line(y)):
+        y += 1
+    if y >= n:
+        return None
+    return y
+
+
+def _statement_at_caret():
+    """Complete expression at caret (vscode-R extendSelection, thin)."""
+    y = _skip_to_code_line(_caret_line_index())
+    if y is None:
+        return None, None, ''
+    n = ed.get_line_count()
+    start, end = extend_statement(y, ed.get_text_line, n)
+    text = join_lines(ed.get_text_line, start, end)
+    return start, end, text
+
+
 def _cap_plain(item):
     cap = ''
     if isinstance(item, dict):
@@ -104,20 +131,20 @@ class Command:
         self._tools_ready = False
 
     def send_selection(self):
-        """Send selection; if empty, send the current line (CPR VP-EB-1)."""
+        """Send selection; if empty, send the complete statement at caret."""
         sel = _selection_text()
         if sel.strip() != '':
             last = _selection_last_line()
             if _send_payload(sel, 'selection') and last is not None:
                 _advance_caret_after(last)
             return
-        y = _caret_line_index()
-        if _send_payload(_current_line_text(), 'line') and y is not None:
-            _advance_caret_after(y)
+        _start, end, text = _statement_at_caret()
+        if _send_payload(text, 'statement') and end is not None:
+            _advance_caret_after(end)
 
     def send_current_line(self):
         y = _caret_line_index()
-        if _send_payload(_current_line_text(), 'line') and y is not None:
+        if _send_payload(_line_text(y), 'line') and y is not None:
             _advance_caret_after(y)
 
     def on_start2(self, ed_self):

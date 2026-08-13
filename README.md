@@ -17,18 +17,22 @@ artefacts — not a REPL+Explorer bundle (D29).
 
 ## VP-EB-1 plugin (Linux lab)
 
-STATghost must be **running** and **Armed**. The plugin copies the
-selection (or the current line if empty) to the system clipboard as
-UTF-8. STATghost already evaluates clipboard changes when Armed.
+STATghost must be **running** and **Armed**. The plugin copies UTF-8 to
+the system clipboard. Empty selection → complete **statement** at the
+caret (brackets, trailing operators, and unbraced R `if (cond)` plus
+its multi-line body — RStudio Ctrl+Enter idea). **Send current line**
+stays an explicit one-line command. After a successful send, the caret
+advances to the next code line and **stops**.
 
 ```bash
 bash plugins/install_lab.sh
 # or: CUDA_ROOT=/path/to/CudaText bash plugins/install_lab.sh
 ```
 
-Restart CudaText (`cuda_jcf/run.sh`). Then:
+Restart CudaText (`cuda_jcf/run.sh`) after plugin changes (Python is
+cached until restart). Then:
 
-- **Plugins → STATghost → Send selection** (empty selection → current line)
+- **Plugins → STATghost → Send selection or statement**
 - **Plugins → STATghost → Send current line**
 - **Tools → Send to STATghost** / **Send current line**
 - Shortcuts: none by default — bind in Command Palette → **F9**
