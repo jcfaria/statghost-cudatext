@@ -17,7 +17,11 @@ Layout (add a module, not a god-file):
   statement.py    R statement bounds + collapse_wraps (bracket-aware)
   chrome.py       native toolbar + side tab (cuda_r_plugin API recipe)
   bar.py          retired experimental docked strip (do not auto-show)
+  test_unit.py    automated checks (no CudaText): collapse / protocol / paths
   png/            toolbar / sidebar glyphs (16/24/32; no Explorer set)
+
+TF (no host):
+  python3 test_unit.py
 
 New classroom action:
   1. Command method in __init__.py (one-liner)
