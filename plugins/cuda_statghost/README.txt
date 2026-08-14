@@ -14,14 +14,20 @@ Layout (add a module, not a god-file):
   paths.py        TEMP/STATghost slots twin of STATghostcom `.paths`
   config.py       plugin Config UI
   editor.py       caret / selection / advance
-  statement.py    R statement bounds + collapse_wraps (bracket-aware)
+  statement.py    R statement bounds + enclosing function + collapse_wraps
   chrome.py       native toolbar + side tab (cuda_r_plugin API recipe)
   bar.py          retired experimental docked strip (do not auto-show)
-  test_unit.py    automated checks (no CudaText): collapse / protocol / paths
+  test_unit.py    automated checks (no CudaText): collapse / protocol / paths / function
   png/            toolbar / sidebar glyphs (16/24/32; no Explorer set)
 
 TF (no host):
   python3 test_unit.py
+
+Send (no selection):
+  1. If the caret is inside `name <- function(...) { … }` (any body line,
+     brace, or blank/comment in the block) → send the **whole function**
+     (innermost when nested). Same idea as RStudio “run function”.
+  2. Else → complete statement at caret (brackets / if-else), then advance.
 
 New classroom action:
   1. Command method in __init__.py (one-liner)

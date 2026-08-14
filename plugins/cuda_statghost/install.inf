@@ -11,7 +11,7 @@ events=on_start2,on_state
 
 [item2]
 section=commands
-caption=STATghost\Send selection or statement
+caption=STATghost\Send selection / function / statement
 method=send_selection
 
 [item8]

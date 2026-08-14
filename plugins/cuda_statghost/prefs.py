@@ -17,6 +17,7 @@ INI_NAME = 'cuda_statghost.ini'
 _collapse_cache = None
 _source_echo_cache = None
 _source_encoding_cache = None
+_pipe_cache = None
 
 
 def ini_path():
@@ -84,6 +85,34 @@ def set_source_encoding(enc):
     e = (enc or '').strip() or 'UTF-8'
     _source_encoding_cache = e
     ini_write(ini_path(), 'send', 'source_encoding', e)
+
+
+def get_pipe_token():
+    """Default native R pipe `|>` (R 4.1+); magrittr via Config."""
+    global _pipe_cache
+    if _pipe_cache is not None:
+        return str(_pipe_cache)
+    raw = ini_read(ini_path(), 'edit', 'pipe', 'native')
+    if raw is None or str(raw).strip() == '':
+        raw = 'native'
+    key = str(raw).strip().lower()
+    if key in ('magrittr', '%>%', 'tee'):
+        _pipe_cache = '%>%'
+    else:
+        _pipe_cache = '|>'
+    return str(_pipe_cache)
+
+
+def set_pipe_token(kind):
+    """kind: 'native' | 'magrittr' (or the tokens themselves)."""
+    global _pipe_cache
+    key = (kind or '').strip().lower()
+    if key in ('magrittr', '%>%', 'tee'):
+        ini_write(ini_path(), 'edit', 'pipe', 'magrittr')
+        _pipe_cache = '%>%'
+    else:
+        ini_write(ini_path(), 'edit', 'pipe', 'native')
+        _pipe_cache = '|>'
 
 
 def encoding_for_r(enc=None):

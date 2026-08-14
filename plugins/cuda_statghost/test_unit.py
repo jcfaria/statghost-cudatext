@@ -16,6 +16,19 @@ import protocol  # noqa: E402
 import statement  # noqa: E402
 
 
+def _lines(text):
+    rows = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+    return rows
+
+
+def _get(rows):
+    def get_line(i):
+        if i < 0 or i >= len(rows):
+            return ''
+        return rows[i]
+    return get_line
+
+
 class TestCollapseWraps(unittest.TestCase):
     def test_trailing_paren_joins(self):
         src = 'plot(\n  x\n)'
@@ -67,6 +80,81 @@ class TestPaths(unittest.TestCase):
         path = paths.write_slot(paths.IDX_FILE, text)
         with open(path, encoding='utf-8') as f:
             self.assertEqual(f.read(), text)
+
+
+class TestEnclosingFunction(unittest.TestCase):
+    def test_r_caret_in_body(self):
+        src = '''\
+foo <- function(x) {
+  y <- x + 1
+  y
+}
+'''
+        rows = _lines(src)
+        # caret on "y <- x + 1"
+        s, e = statement.enclosing_function(1, _get(rows), len(rows))
+        self.assertEqual((s, e), (0, 3))
+        text = statement.join_lines(_get(rows), s, e)
+        self.assertIn('foo <- function', text)
+        self.assertIn('y <- x + 1', text)
+
+    def test_r_caret_on_closing_brace(self):
+        src = '''\
+foo <- function(x) {
+  x
+}
+'''
+        rows = _lines(src)
+        s, e = statement.enclosing_function(2, _get(rows), len(rows))
+        self.assertEqual((s, e), (0, 2))
+
+    def test_r_nested_innermost(self):
+        src = '''\
+outer <- function(x) {
+  inner <- function(y) {
+    y + 1
+  }
+  inner(x)
+}
+'''
+        rows = _lines(src)
+        # inside inner body
+        s, e = statement.enclosing_function(2, _get(rows), len(rows))
+        self.assertEqual(s, 1)
+        self.assertIn('inner <- function', rows[s])
+        # on inner(x) — outside inner, inside outer
+        s2, e2 = statement.enclosing_function(4, _get(rows), len(rows))
+        self.assertEqual(s2, 0)
+        self.assertIn('outer <- function', rows[s2])
+
+    def test_r_equals_assign(self):
+        src = '''\
+f = function(a, b) {
+  a + b
+}
+'''
+        rows = _lines(src)
+        s, e = statement.enclosing_function(1, _get(rows), len(rows))
+        self.assertEqual(s, 0)
+
+    def test_not_inside_function(self):
+        src = 'x <- 1\ny <- 2\n'
+        rows = _lines(src)
+        s, e = statement.enclosing_function(1, _get(rows), len(rows))
+        self.assertEqual((s, e), (None, None))
+
+    def test_python_def(self):
+        src = '''\
+def foo(x):
+    y = x + 1
+    return y
+
+z = 1
+'''
+        rows = _lines(src)
+        s, e = statement.enclosing_function(1, _get(rows), len(rows))
+        self.assertEqual(s, 0)
+        self.assertEqual(e, 2)
 
 
 if __name__ == '__main__':

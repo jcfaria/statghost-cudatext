@@ -364,6 +364,124 @@ def extend_statement(line, get_line, line_count):
     return _grow_r_control(start, end, get_line, line_count)
 
 
+# R: name <- function(  /  name = function(  /  `odd name` <- function(
+_RE_R_FUN_HEAD = re.compile(
+    r'^\s*(?:[.`\w]+|`[^`]+`)\s*(?:<-|=)\s*function\s*\('
+)
+# Python / Julia light (classroom multi-engine).
+_RE_PY_DEF = re.compile(
+    r'^(\s*)(?:async\s+)?(?:def|class)\s+[A-Za-z_]\w*\s*[(:]'
+)
+_RE_JL_FUN = re.compile(
+    r'^\s*(?:function|macro)\s+[A-Za-z_!][\w!]*'
+)
+
+
+def _indent_width(line):
+    s = line or ''
+    n = 0
+    for c in s:
+        if c == ' ':
+            n += 1
+        elif c == '\t':
+            n += 4
+        else:
+            break
+    return n
+
+
+def _is_blank_or_comment(line):
+    s = (line or '').strip()
+    return s == '' or s.startswith('#')
+
+
+def enclosing_function(line, get_line, line_count):
+    """Inclusive (start, end) of the function that contains `line`, or (None, None).
+
+    RStudio / vscode-R idea: caret anywhere inside the body still sends the
+    whole `name <- function(...) { ... }` (innermost when nested).
+    Also light Python `def`/`class` (indent) and Julia `function`/`macro`.
+    """
+    if line is None or line_count is None or line_count <= 0:
+        return None, None
+    line = int(line)
+    if line < 0:
+        line = 0
+    if line >= line_count:
+        line = line_count - 1
+
+    def line_at(i):
+        t = get_line(i)
+        return t if t is not None else ''
+
+    # --- R: walk up; first head whose bracket extent covers caret = innermost
+    for i in range(line, -1, -1):
+        raw = line_at(i)
+        if not _RE_R_FUN_HEAD.match(raw):
+            continue
+        s, e = extend_statement(i, get_line, line_count)
+        if s <= line <= e:
+            return s, e
+
+    # --- Python: def/class at indent <= caret's code indent
+    caret_raw = line_at(line)
+    caret_ind = _indent_width(caret_raw)
+    if _is_blank_or_comment(caret_raw):
+        # Use nearest code line below (or above) for indent reference.
+        for j in range(line + 1, line_count):
+            if not _is_blank_or_comment(line_at(j)):
+                caret_ind = _indent_width(line_at(j))
+                break
+        else:
+            for j in range(line - 1, -1, -1):
+                if not _is_blank_or_comment(line_at(j)):
+                    caret_ind = _indent_width(line_at(j))
+                    break
+    for i in range(line, -1, -1):
+        raw = line_at(i)
+        m = _RE_PY_DEF.match(raw)
+        if not m:
+            continue
+        head_ind = _indent_width(raw)
+        if head_ind > caret_ind:
+            continue
+        # Body continues while indent > head_ind. Blanks/comments inside
+        # the block are included via the span i..end; trailing blanks after
+        # the last body line are not (next dedent ends the def).
+        end = i
+        for j in range(i + 1, line_count):
+            lj = line_at(j)
+            if _is_blank_or_comment(lj):
+                continue
+            if _indent_width(lj) > head_ind:
+                end = j
+                continue
+            break
+        if i <= line <= end:
+            return i, end
+    # --- Julia: function/macro … end (bracket-free; match end at col)
+    for i in range(line, -1, -1):
+        raw = line_at(i)
+        if not _RE_JL_FUN.match(raw):
+            continue
+        depth = 1
+        end = i
+        for j in range(i + 1, line_count):
+            lj = line_at(j).strip()
+            if re.match(r'^(?:function|macro|struct|mutable\s+struct|for|while|if|let|quote|begin)\b', lj):
+                depth += 1
+            if re.match(r'^end\b', lj):
+                depth -= 1
+                if depth == 0:
+                    end = j
+                    break
+            end = j
+        if i <= line <= end and depth == 0:
+            return i, end
+
+    return None, None
+
+
 def join_lines(get_line, start, end):
     parts = []
     for i in range(start, end + 1):

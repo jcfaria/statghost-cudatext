@@ -86,7 +86,7 @@ _TB = (
     ('arm', 'Toggle Arm/Idle', 'toggle_arm', 'idle.png'),
     ('host', 'Start/Quit STATghost', 'toggle_host', 'power.png'),
     ('sep_send', '-', None, None),
-    ('send', 'Send selection or statement', 'send_selection', 'send.png'),
+    ('send', 'Send selection, enclosing function, or statement', 'send_selection', 'send.png'),
     ('source', 'Source file via .paths[4]', 'send_file', 'export.png'),
     ('clear', 'Clear STATghost Console', 'clear_console', 'clear.png'),
 )

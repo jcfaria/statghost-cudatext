@@ -16,7 +16,12 @@ try:
     from . import paths as sgpaths
     from . import prefs
     from . import protocol
-    from .statement import collapse_wraps, extend_statement, join_lines
+    from .statement import (
+        collapse_wraps,
+        enclosing_function,
+        extend_statement,
+        join_lines,
+    )
 except ImportError:
     import chrome
     import config as plugincfg
@@ -25,8 +30,12 @@ except ImportError:
     import paths as sgpaths
     import prefs
     import protocol
-    from statement import collapse_wraps, extend_statement, join_lines
-
+    from statement import (
+        collapse_wraps,
+        enclosing_function,
+        extend_statement,
+        join_lines,
+    )
 PLUGIN = 'STATghost'
 
 
@@ -81,13 +90,21 @@ def _send_command(name, hint):
 
 
 def _statement_at_caret():
-    y = editor.skip_to_code_line(editor.caret_line_index())
-    if y is None:
-        return None, None, ''
+    """Prefer enclosing function (caret anywhere in body), else one statement."""
+    y0 = editor.caret_line_index()
+    if y0 is None:
+        return None, None, '', 'statement'
     n = editor.line_count()
+    fs, fe = enclosing_function(y0, editor.get_line, n)
+    if fs is not None and fe is not None:
+        text = join_lines(editor.get_line, fs, fe)
+        return fs, fe, text, 'function'
+    y = editor.skip_to_code_line(y0)
+    if y is None:
+        return None, None, '', 'statement'
     start, end = extend_statement(y, editor.get_line, n)
     text = join_lines(editor.get_line, start, end)
-    return start, end, text
+    return start, end, text, 'statement'
 
 
 def _build_source_file_code():
@@ -103,15 +120,19 @@ def _build_source_file_code():
 class Command:
 
     def send_selection(self):
-        """Send selection; if empty, send the complete statement at caret."""
+        """Send selection; if empty, enclosing function or statement at caret.
+
+        Function (RStudio-style): caret anywhere inside `f <- function() {…}`
+        sends the whole definition, not only the inner line.
+        """
         sel = editor.selection_text()
         if sel.strip() != '':
             last = editor.selection_last_line()
             if _send_code(sel, 'selection') and last is not None:
                 editor.advance_caret_after(last)
             return
-        _start, end, text = _statement_at_caret()
-        if _send_code(text, 'statement') and end is not None:
+        _start, end, text, mode = _statement_at_caret()
+        if _send_code(text, mode) and end is not None:
             editor.advance_caret_after(end)
 
     def send_file(self):
