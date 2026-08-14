@@ -3,7 +3,8 @@
     "allow_instructions": [
       "In this statghost-cudatext workspace (CudaText peer for STATghost), after a real tested advance (e.g. python3 plugins/cuda_statghost/test_unit.py green), allow git commit and git push to origin work without asking.",
       "Allow CPMW: checkout main, merge --ff-only work, push origin main, return to work for jcfaria/statghost-cudatext when consolidating a tested advance.",
-      "Allow git fetch and ordinary non-destructive git status/diff/log/add/commit."
+      "Allow git fetch and ordinary non-destructive git status/diff/log/add/commit.",
+      "Owner standing GO 2026-08-14 decide-and-GO: AI may run STATghost --smoke / Dev sample-matrix when warranted for the sibling product."
     ],
     "block_instructions": [
       "Always require approval for git push --force, force-with-lease, reset --hard, clean -fdx, remote branch deletion, and history rewrite."

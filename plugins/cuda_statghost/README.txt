@@ -63,6 +63,7 @@ Config (Options → Settings-plugins → STATghost → Config):
     Encoding is a combo_ro of CudaText PROC_ENUM_ENCODINGS (mapped to
     R names on send, e.g. utf-8 → UTF-8). R Armed + companion loaded.
     No absolute editor path on the Console.
+  [edit] pipe=native|magrittr — Insert pipe (Ctrl+Shift+M): `|>` or `%>%`
 
 Chrome (VP-EB-1b, native):
   Main toolbar: Config | Arm/Idle | Start/Quit | Send | Source | Clear

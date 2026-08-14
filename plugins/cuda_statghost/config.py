@@ -25,22 +25,26 @@ except ImportError:
 PLUGIN = 'STATghost'
 _C1 = chr(1)
 
-# Client size — room for collapse + Source-file echo/encoding + exe.
+# Client size — collapse + Source echo/encoding + pipe + exe.
 _W = 420
-_H = 248
+_H = 276
 
 # Indices must match the control list below (top → bottom).
 _IDX_COLLAPSE = 0
 _IDX_SRC_ECHO = 1
 _IDX_ENC_LBL = 2
 _IDX_ENC = 3
-_IDX_EXE_LBL = 4
-_IDX_EXE = 5
-_IDX_BROWSE = 6
-_IDX_HINT = 7
-_IDX_DET = 8
-_IDX_OK = 9
-_IDX_CANCEL = 10
+_IDX_PIPE_LBL = 4
+_IDX_PIPE = 5
+_IDX_EXE_LBL = 6
+_IDX_EXE = 7
+_IDX_BROWSE = 8
+_IDX_HINT = 9
+_IDX_DET = 10
+_IDX_OK = 11
+_IDX_CANCEL = 12
+
+_PIPE_ITEMS = ('|>  (native R 4.1+)', '%>%  (magrittr)')
 
 # Fallback if PROC_ENUM_ENCODINGS is empty (very old CudaText).
 _FALLBACK_ENCS = (
@@ -129,6 +133,11 @@ def _enc_index(encs, wanted):
     return 0
 
 
+def _pipe_index():
+    tok = prefs.get_pipe_token()
+    return 1 if tok == '%>%' else 0
+
+
 def show_config():
     path = prefs.get_exe() or host.find_exe(ignore_ini=True) or ''
     collapse = prefs.get_collapse()
@@ -136,6 +145,7 @@ def show_config():
     encoding = prefs.get_source_encoding()
     encs = _cuda_encodings()
     enc_idx = _enc_index(encs, encoding)
+    pipe_idx = _pipe_index()
     detected = host.find_exe(ignore_ini=True) or ''
     det_cap = (
         ('Detected: ' + _short_path(detected)) if detected else ''
@@ -153,26 +163,31 @@ def show_config():
                  'pos=8,32,404,54'),
             _ctl('type=label', 'cap=Source file encoding',
                  'pos=8,60,200,76'),
-            # combo_ro: value = drop-down index (CudaText encodings).
             _ctl('type=combo_ro',
                  'items=' + '\t'.join(encs),
                  'val=' + str(enc_idx),
                  'pos=210,58,404,82'),
+            _ctl('type=label', 'cap=Insert pipe (Ctrl+Shift+M)',
+                 'pos=8,88,220,104'),
+            _ctl('type=combo_ro',
+                 'items=' + '\t'.join(_PIPE_ITEMS),
+                 'val=' + str(pipe_idx),
+                 'pos=230,86,404,110'),
             _ctl('type=label', 'cap=STATghost executable',
-                 'pos=8,92,280,108'),
+                 'pos=8,118,280,134'),
             _ctl('type=edit', 'name=exe', 'val=' + path,
-                 'pos=8,110,300,134'),
+                 'pos=8,136,300,160'),
             _ctl('type=button', 'cap=Browse…',
-                 'pos=308,110,404,134'),
+                 'pos=308,136,404,160'),
             _ctl('type=label',
                  'cap=Empty = auto-detect (sibling / PATH).',
-                 'pos=8,140,404,156'),
+                 'pos=8,166,404,182'),
             _ctl('type=label', 'cap=' + det_cap,
-                 'pos=8,156,404,172'),
+                 'pos=8,182,404,198'),
             _ctl('type=button', 'cap=OK',
-                 'pos=220,208,308,232'),
+                 'pos=220,236,308,260'),
             _ctl('type=button', 'cap=Cancel', 'ex0=1',
-                 'pos=316,208,404,232'),
+                 'pos=316,236,404,260'),
         ])
         res = dlg_custom(PLUGIN + ' plugin', _W, _H, text, get_dict=True)
         if res is None:
@@ -185,6 +200,12 @@ def show_config():
         if enc_idx < 0 or enc_idx >= len(encs):
             enc_idx = _enc_index(encs, 'utf-8')
         encoding = encs[enc_idx]
+        try:
+            pipe_idx = int(str(res.get(_IDX_PIPE) if res.get(_IDX_PIPE) is not None else pipe_idx))
+        except (TypeError, ValueError):
+            pipe_idx = _pipe_index()
+        if pipe_idx not in (0, 1):
+            pipe_idx = 0
         collapse = _as_bool(res.get(_IDX_COLLAPSE))
         src_echo = _as_bool(res.get(_IDX_SRC_ECHO))
         clicked = res.get('clicked')
@@ -207,12 +228,15 @@ def show_config():
         prefs.set_collapse(collapse)
         prefs.set_source_echo(src_echo)
         prefs.set_source_encoding(encoding)
+        prefs.set_pipe_token('magrittr' if pipe_idx == 1 else 'native')
         got = prefs.get_collapse()
         msg_status(
             PLUGIN + ': settings saved — collapse '
             + ('ON' if got else 'OFF')
             + ', source echo '
             + ('TRUE' if prefs.get_source_echo() else 'FALSE')
+            + ', pipe '
+            + prefs.get_pipe_token()
             + ', encoding '
             + prefs.get_source_encoding()
         )
