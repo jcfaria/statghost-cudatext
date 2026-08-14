@@ -26,6 +26,6 @@ echo "Plugin: $TARGET -> $PLUGIN_SRC"
 
 echo
 echo "Reinicie o CudaText (./cuda_jcf/run.sh)."
-echo "Menu: Plugins -> STATghost  e  Tools -> Send to STATghost"
+echo "Menu: Plugins -> STATghost  e  Tools -> Send / Toggle Arm"
 echo "Atalhos: Command Palette (F9) — o utilizador define as teclas."
-echo "STATghost tem de estar a correr e Armed."
+echo "STATghost tem de estar a correr. Toggle Arm funciona em Idle."

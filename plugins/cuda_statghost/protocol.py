@@ -1,0 +1,67 @@
+# EB-0 clipboard contract with STATghost (twin: src/ubridgecmd.pas).
+# UTF-8 on the system clipboard. First line:
+#   #. STATGHOST:<CMD> <nonce>
+# Note1-shaped so a leak into R/Python/Julia is a comment.
+# <nonce> makes every plugin send unique — same student code / same toggle
+# must re-fire (pseudo-random reruns; Arm/Idle more than once). Without it
+# the clipboard text would match FLastClip and STATghost would skip, and
+# the token sitting on the clipboard would otherwise toggle every 250 ms.
+# Pure Python (no cudatext).
+
+from __future__ import annotations
+
+import time
+
+PREFIX = '#. STATGHOST:'
+
+CMD_TOGGLE_ARM = 'TOGGLE_ARM'
+CMD_ARM = 'ARM'
+CMD_IDLE = 'IDLE'
+CMD_EVAL = 'EVAL'
+CMD_QUIT = 'QUIT'
+CMD_CLEAR = 'CLEAR'
+
+
+def _nonce():
+    return str(time.time_ns())
+
+
+def make_command(name):
+    cmd = (name or '').strip().upper()
+    return PREFIX + cmd + ' ' + _nonce()
+
+
+def make_eval(code):
+    """Wrap student code so a repeat send is a new clipboard payload."""
+    return make_command(CMD_EVAL) + '\n' + (code if code is not None else '')
+
+
+def parse_message(text):
+    """Return (cmd, body) or (None, None).
+
+    First line `#. STATGHOST:<CMD> [nonce]`; body is the rest (EVAL).
+    """
+    raw = text if text is not None else ''
+    if raw.startswith('\ufeff'):
+        raw = raw[1:]
+    nl = raw.find('\n')
+    if nl < 0:
+        head, body = raw, ''
+    else:
+        head, body = raw[:nl], raw[nl + 1:]
+    if head.endswith('\r'):
+        head = head[:-1]
+    head = head.strip()
+    if not head.startswith(PREFIX):
+        return None, None
+    tail = head[len(PREFIX):].strip()
+    if not tail:
+        return None, None
+    sp = tail.find(' ')
+    if sp < 0:
+        cmd = tail.upper()
+    else:
+        cmd = tail[:sp].upper()
+    if not cmd:
+        return None, None
+    return cmd, body

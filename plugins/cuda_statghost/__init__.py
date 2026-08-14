@@ -1,205 +1,215 @@
 # STATghost CudaText plugin — VP-EB-1 send-to-sniper (layer A).
-# Transport = system clipboard UTF-8; Armed STATghost evaluates (layer B).
-# Engine-agnostic: whatever sniper engine is Armed. No REPL inside CudaText.
+# Transport = system clipboard UTF-8 (layer B). No REPL inside CudaText.
+# Command class stays thin: new actions = method + install.inf.
+# Native chrome (VP-EB-1b) = chrome.py — main toolbar + side tab.
 
-from cudatext import ed
+from cudatext import APPSTATE_THEME_UI
 from cudatext import app_proc, PROC_SET_CLIP
+from cudatext import ed
 from cudatext import msg_status
-from cudatext import menu_proc, MENU_ENUM, MENU_ADD
 
 try:
-    from .statement import extend_statement, join_lines
+    from . import chrome
+    from . import config as plugincfg
+    from . import editor
+    from . import host
+    from . import paths as sgpaths
+    from . import prefs
+    from . import protocol
+    from .statement import collapse_wraps, extend_statement, join_lines
 except ImportError:
-    from statement import extend_statement, join_lines
+    import chrome
+    import config as plugincfg
+    import editor
+    import host
+    import paths as sgpaths
+    import prefs
+    import protocol
+    from statement import collapse_wraps, extend_statement, join_lines
 
 PLUGIN = 'STATghost'
-TOOLS_CAP = 'Tools'
-TOOLS_TAG = 'statghost-eb1'
 
 
-def _caret_line_index():
-    carets = ed.get_carets()
-    if not carets:
-        return None
-    _x, y, _x2, _y2 = carets[0]
-    if y < 0:
-        return None
-    return y
+def _set_clip(text):
+    app_proc(PROC_SET_CLIP, text)
 
 
-def _selection_text():
-    sel = ed.get_text_sel()
-    if sel:
-        return sel
-    return ''
+def _line_count(text):
+    if text is None or text == '':
+        return 0
+    t = text.replace('\r\n', '\n').replace('\r', '\n')
+    return t.count('\n') + 1
 
 
-def _line_text(y):
-    if y is None:
-        return ''
-    line = ed.get_text_line(y)
-    return line if line else ''
+def _r_quote(path):
+    """R double-quoted path; prefer / separators (works on Win + Unix)."""
+    s = (path or '').replace('\\', '/')
+    return '"' + s.replace('"', '\\"') + '"'
 
 
-def _send_payload(text, mode):
-    """Copy UTF-8 text to the system clipboard (same as a human Copy)."""
+def _send_code(text, mode, apply_collapse=True):
+    """Student chunk — STATghost evals only when Armed.
+
+    Collapse is plugin-side shaping of the EVAL body. STATghost then
+    chooses 1 line → direct `>` echo vs 2+ → `source(echo=TRUE)` — so
+    the option only “shows” when collapse actually yields one line.
+    """
     if text is None or text.strip() == '':
         msg_status(PLUGIN + ': nothing to send (' + mode + ')')
         return False
-    app_proc(PROC_SET_CLIP, text)
-    n = len(text)
+    n_in = _line_count(text)
+    collapse = prefs.get_collapse() if apply_collapse else False
+    if collapse:
+        text = collapse_wraps(text)
+    n_out = _line_count(text)
+    _set_clip(protocol.make_eval(text))
     msg_status(
-        PLUGIN + ': sent ' + mode + ' (' + str(n)
-        + ' chars) — STATghost must be Armed'
+        PLUGIN + ': sent ' + mode + ' (' + str(len(text))
+        + ' chars, lines ' + str(n_in) + '→' + str(n_out)
+        + ', collapse '
+        + ('ON' if collapse else 'OFF')
+        + ') — STATghost must be Armed'
     )
     return True
 
 
-def _is_blank_or_hash_comment(line):
-    s = (line or '').strip()
-    return s == '' or s.startswith('#')
-
-
-def _selection_last_line():
-    """Last line index of a real selection, or None."""
-    carets = ed.get_carets()
-    if not carets:
-        return None
-    x, y, x2, y2 = carets[0]
-    if x2 < 0:
-        return None
-    if (y, x) <= (y2, x2):
-        ay, bx, by = y, x2, y2
-    else:
-        ay, bx, by = y2, x, y
-    last = by
-    if bx == 0 and by > ay:
-        last = by - 1
-    return last
-
-
-def _advance_caret_after(from_y):
-    """Col 0 of next code line; skip blanks and # comments. EOF: stay."""
-    n = ed.get_line_count()
-    y = from_y + 1
-    while y < n:
-        if not _is_blank_or_hash_comment(ed.get_text_line(y)):
-            ed.set_caret(0, y)
-            return
-        y += 1
-
-
-def _skip_to_code_line(y):
-    """If caret is on blank/#, start at the next code line (sniper chunk)."""
-    n = ed.get_line_count()
-    if y is None:
-        return None
-    while y < n and _is_blank_or_hash_comment(ed.get_text_line(y)):
-        y += 1
-    if y >= n:
-        return None
-    return y
+def _send_command(name, hint):
+    """Control token — STATghost handles Idle or Armed; never evals it."""
+    _set_clip(protocol.make_command(name))
+    msg_status(PLUGIN + ': ' + hint)
+    return True
 
 
 def _statement_at_caret():
-    """Complete expression at caret (vscode-R extendSelection, thin)."""
-    y = _skip_to_code_line(_caret_line_index())
+    y = editor.skip_to_code_line(editor.caret_line_index())
     if y is None:
         return None, None, ''
-    n = ed.get_line_count()
-    start, end = extend_statement(y, ed.get_text_line, n)
-    text = join_lines(ed.get_text_line, start, end)
+    n = editor.line_count()
+    start, end = extend_statement(y, editor.get_line, n)
+    text = join_lines(editor.get_line, start, end)
     return start, end, text
 
 
-def _cap_plain(item):
-    cap = ''
-    if isinstance(item, dict):
-        cap = item.get('cap') or item.get('caption') or ''
-    return cap.replace('&', '')
-
-
-def _item_id(item):
-    if isinstance(item, dict):
-        return item.get('id') or item.get('Id')
-    return None
+def _build_source_file_code():
+    """source(.paths[4], …) only — buffer already written to the shared slot."""
+    echo = 'TRUE' if prefs.get_source_echo() else 'FALSE'
+    enc = prefs.encoding_for_r()
+    return (
+        'source(.paths[4], echo = ' + echo
+        + ', spaced = FALSE, encoding = ' + _r_quote(enc) + ')'
+    )
 
 
 class Command:
 
-    def __init__(self):
-        self._tools_ready = False
-
     def send_selection(self):
         """Send selection; if empty, send the complete statement at caret."""
-        sel = _selection_text()
+        sel = editor.selection_text()
         if sel.strip() != '':
-            last = _selection_last_line()
-            if _send_payload(sel, 'selection') and last is not None:
-                _advance_caret_after(last)
+            last = editor.selection_last_line()
+            if _send_code(sel, 'selection') and last is not None:
+                editor.advance_caret_after(last)
             return
         _start, end, text = _statement_at_caret()
-        if _send_payload(text, 'statement') and end is not None:
-            _advance_caret_after(end)
+        if _send_code(text, 'statement') and end is not None:
+            editor.advance_caret_after(end)
 
-    def send_current_line(self):
-        y = _caret_line_index()
-        if _send_payload(_line_text(y), 'line') and y is not None:
-            _advance_caret_after(y)
+    def send_file(self):
+        """Whole buffer → TEMP/STATghost/file.R → source(.paths[4], …).
+
+        TinnRcom pattern: shared `.paths` slot (STATghostcom), not an
+        absolute editor path on the Console. Armed R + companion loaded.
+        """
+        text = ed.get_text_all()
+        if text is None:
+            text = ''
+        try:
+            sgpaths.write_slot(sgpaths.IDX_FILE, text)
+        except OSError as e:
+            msg_status(PLUGIN + ': cannot write .paths[4] — ' + str(e))
+            return
+        code = _build_source_file_code()
+        _send_code(code, 'source-file', apply_collapse=False)
+
+    def clear_console(self):
+        """Ask STATghost to wipe Console text (Ctrl+L). Works Idle or Armed."""
+        if not chrome.get(self).host_cmd_allowed():
+            return
+        _send_command(
+            protocol.CMD_CLEAR,
+            'clear Console requested — STATghost must be running',
+        )
+
+    def toggle_arm(self):
+        """Ask STATghost to toggle Idle|Armed (works from Idle)."""
+        _send_command(
+            protocol.CMD_TOGGLE_ARM,
+            'toggle Arm/Idle requested — STATghost must be running',
+        )
+        chrome.get(self).note_arm_toggle()
+        chrome.get(self).refresh()
+
+    def toggle_host(self):
+        """Start STATghost if it is down; quit if it is up.
+
+        Never from CudaText startup — only a conscious toolbar/menu click.
+        """
+        if not chrome.get(self).host_cmd_allowed():
+            return
+        if host.is_running():
+            def _quit_clip():
+                _set_clip(protocol.make_command(protocol.CMD_QUIT))
+
+            ok, msg = host.stop_graceful(_quit_clip)
+            if ok:
+                msg_status(PLUGIN + ': ' + msg)
+            chrome.get(self).note_host_down()
+            chrome.get(self).refresh()
+            return
+        ok, msg = host.start()
+        if ok:
+            if msg == 'already running':
+                msg_status(PLUGIN + ': already running — one instance')
+            else:
+                msg_status(PLUGIN + ': started ' + msg)
+            chrome.get(self).note_host_up()
+            chrome.get(self).refresh()
+            return
+        msg_status(PLUGIN + ': ' + msg)
+        if plugincfg.show_config():
+            ok, msg = host.start()
+            if ok:
+                if msg == 'already running':
+                    msg_status(PLUGIN + ': already running — one instance')
+                else:
+                    msg_status(PLUGIN + ': started ' + msg)
+                chrome.get(self).note_host_up()
+            else:
+                msg_status(PLUGIN + ': ' + msg)
+        chrome.get(self).refresh()
+
+    def config(self):
+        """Plugin settings — STATghost executable path."""
+        plugincfg.show_config()
+        chrome.get(self).refresh()
+
+    def open_side(self):
+        """Sidebar button / Plugins → STATghost side tab."""
+        chrome.get(self).open_side(activate=True, focus=True)
+
+    def chrome_tick(self, tag='', info=''):
+        chrome.get(self).tick(tag)
+
+    def toggle_bar(self):
+        """Retired experimental docked strip — point at native chrome."""
+        msg_status(
+            PLUGIN + ': docked bar retired — use the toolbar and the '
+            'STATghost side tab'
+        )
 
     def on_start2(self, ed_self):
-        self._ensure_tools_menu()
+        chrome.get(self).on_start()
 
-    def _ensure_tools_menu(self):
-        if self._tools_ready:
-            return
-        try:
-            items = menu_proc('top', MENU_ENUM) or []
-        except Exception:
-            return
-        if not isinstance(items, list):
-            return
-
-        tools_id = None
-        plugins_index = -1
-        for i, it in enumerate(items):
-            cap = _cap_plain(it)
-            if cap == TOOLS_CAP:
-                tools_id = _item_id(it)
-            elif cap == 'Plugins':
-                plugins_index = i
-
-        if tools_id is None:
-            insert_at = plugins_index + 1 if plugins_index >= 0 else -1
-            tools_id = menu_proc(
-                'top', MENU_ADD,
-                caption='&' + TOOLS_CAP,
-                index=insert_at,
-                tag=TOOLS_TAG,
-            )
-
-        if not tools_id:
-            return
-
-        existing = []
-        try:
-            kids = menu_proc(tools_id, MENU_ENUM) or []
-        except Exception:
-            kids = []
-        if isinstance(kids, list):
-            existing = [_cap_plain(k) for k in kids]
-
-        pairs = (
-            ('Send to STATghost', self.send_selection),
-            ('Send current line', self.send_current_line),
-        )
-        for cap, fn in pairs:
-            if cap in existing:
-                continue
-            menu_proc(
-                tools_id, MENU_ADD,
-                command=fn,
-                caption=cap,
-                tag=TOOLS_TAG,
-            )
-        self._tools_ready = True
+    def on_state(self, ed_self, state):
+        if state == APPSTATE_THEME_UI:
+            chrome.get(self).reload_icons()

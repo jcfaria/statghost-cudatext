@@ -1,20 +1,51 @@
 [info]
 title=STATghost
-desc=Send selection or complete statement to Armed STATghost (clipboard sniper, VP-EB-1)
+desc=Send to STATghost; Source file; Arm/Idle; Start/Quit; Clear Console; toolbar + side tab
 type=cudatext-plugin
 subdir=cuda_statghost
 homepage=https://github.com/jcfaria/statghost-cudatext
 
 [item1]
 section=events
-events=on_start2
+events=on_start2,on_state
 
 [item2]
 section=commands
 caption=STATghost\Send selection or statement
 method=send_selection
 
+[item8]
+section=commands
+caption=STATghost\Source file
+method=send_file
+
+[item7]
+section=commands
+caption=STATghost\Clear Console
+method=clear_console
+
 [item3]
 section=commands
-caption=STATghost\Send current line
-method=send_current_line
+caption=STATghost\Toggle Arm/Idle
+method=toggle_arm
+
+[item4]
+section=commands
+caption=STATghost\Start/Quit STATghost
+method=toggle_host
+
+[item5]
+section=commands
+caption=STATghost\Show side tab
+method=open_side
+
+[item6]
+section=commands
+caption=STATghost\Config
+method=config
+menu=o
+
+[sidebar1]
+hint=STATghost
+icon={dir}/png/statghost_24.png
+method=open_side

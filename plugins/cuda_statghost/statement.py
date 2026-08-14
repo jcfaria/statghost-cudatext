@@ -47,6 +47,85 @@ def ends_in_operator(text):
     return _END_OP.search(s) is not None
 
 
+def _newline_inside_string(text):
+    quote = None
+    prev = ''
+    for c in text or '':
+        if c in '"\'`' :
+            if quote is None:
+                quote = c
+            elif quote == c and prev != '\\':
+                quote = None
+        if c == '\n' and quote is not None:
+            return True
+        prev = c
+    return False
+
+
+def _has_code_comment(text):
+    """True if a `#` comment sits after code on this line (join would swallow)."""
+    raw = text or ''
+    cleaned = clean_line(raw)
+    return len(cleaned) < len(raw.rstrip())
+
+
+def _bracket_depth(text):
+    """Net ([{ depth, ignoring quotes (same quote rules as clean_line)."""
+    depth = 0
+    quote = None
+    prev = ''
+    for c in text or '':
+        if quote:
+            if c == quote and prev != '\\':
+                quote = None
+        elif c in '"\'`':
+            quote = c
+        elif c in '([{':
+            depth += 1
+        elif c in ')]}':
+            depth -= 1
+        prev = c
+    return depth
+
+
+def collapse_wraps(text):
+    """Join editor wraps into one line (fig 1 → fig 2). Tokens unchanged.
+
+    Joins while the previous line is an unfinished call: trailing
+    operator (comma, `(`, `%>%`, …) **or** unmatched `([{` depth.
+    Without depth, a closing `)` alone on the next line stayed separate
+    → STATghost still took the 2+ line `source(echo=TRUE)` path and the
+    Config option looked dead. Leaves multi-line strings, `#` mid-line
+    comments, blank sniper cuts, and unbraced `if` bodies as they are.
+    """
+    if text is None or '\n' not in text:
+        return text if text is not None else ''
+    raw = text.replace('\r\n', '\n').replace('\r', '\n')
+    if _newline_inside_string(raw):
+        return text
+    lines = raw.split('\n')
+    out = [lines[0].rstrip()]
+    for line in lines[1:]:
+        prev = out[-1]
+        nxt = line.strip()
+        # Blank / whole-line `#` = sniper chunk cut (do not join across).
+        if nxt == '' or nxt.startswith('#'):
+            out.append(line)
+            continue
+        if (
+            prev
+            and not _has_code_comment(prev)
+            and (
+                ends_in_operator(prev)
+                or _bracket_depth(prev) > 0
+            )
+        ):
+            out[-1] = prev + ' ' + nxt
+            continue
+        out.append(line.rstrip())
+    return '\n'.join(out)
+
+
 def _is_quote(c):
     return c in '"\'`'
 

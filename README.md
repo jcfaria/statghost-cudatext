@@ -12,17 +12,19 @@ artefacts — not a REPL+Explorer bundle (D29).
 |------|------|
 | `lexer-dev/` | Workshop LCF packs |
 | `lexer/` | Promoted packs (CudaText `data/lexlib` + STATghost Console via build) |
-| `plugins/cuda_statghost/` | **VP-EB-1** send-to-sniper (clipboard → Armed STATghost) |
+| `plugins/cuda_statghost/` | **VP-EB-1** send-to-sniper + Arm toggle (`protocol.py` / `editor.py` / `statement.py`) |
 | `docs/` | Notes + optional sync into STATghost `_out/lexer` |
 
 ## VP-EB-1 plugin (Linux lab)
 
-STATghost must be **running** and **Armed**. The plugin copies UTF-8 to
-the system clipboard. Empty selection → complete **statement** at the
+STATghost must be **running**. **Toggle Arm/Idle** works while Idle
+(control token `#. STATGHOST:TOGGLE_ARM <nonce>` — never eval'd). Send
+of code uses `#. STATGHOST:EVAL <nonce>` plus the student chunk, so the
+same selection can be re-sent (pseudo-random reruns).
+still requires Armed. Empty selection → complete **statement** at the
 caret (brackets, trailing operators, and unbraced R `if (cond)` plus
-its multi-line body — RStudio Ctrl+Enter idea). **Send current line**
-stays an explicit one-line command. After a successful send, the caret
-advances to the next code line and **stops**.
+its multi-line body — RStudio Ctrl+Enter idea). After a successful
+send, the caret advances to the next code line and **stops**.
 
 ```bash
 bash plugins/install_lab.sh
@@ -33,8 +35,8 @@ Restart CudaText (`cuda_jcf/run.sh`) after plugin changes (Python is
 cached until restart). Then:
 
 - **Plugins → STATghost → Send selection or statement**
-- **Plugins → STATghost → Send current line**
-- **Tools → Send to STATghost** / **Send current line**
+- **Plugins → STATghost → Toggle Arm/Idle**
+- **Plugins → STATghost → Start/Quit STATghost**
 - Shortcuts: none by default — bind in Command Palette → **F9**
 
 Engine = whatever STATghost has Armed (R / Python / Julia). Same chunk
