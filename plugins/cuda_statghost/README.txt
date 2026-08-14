@@ -68,14 +68,18 @@ Config (Options → Settings-plugins → STATghost → Config):
     (default auto: high contrast vs ButtonBg/TabBg; theme = raw ButtonFont)
   [chrome] show=cfg,arm,host,send,source,clear — which control-deck
     buttons appear on the main toolbar AND the side tab (same set /
-    same order). Config checkboxes + All/None. Empty → all. Hidden
-    buttons remain in Plugins → STATghost / hotkeys.
+    same order). Config checkboxes + All/None. Extras (opt-in):
+    function, above, below, chunk, srcsel, setwd, assign, pipe, outline.
+    Empty → defaults (six core). Hidden buttons remain in Plugins menu.
 
 Chrome (VP-EB-1b, native):
-  Main toolbar: Config | Arm/Idle | Start/Quit | Send | Source | Clear
+  Default toolbar: Config | Arm/Idle | Start/Quit | Send | Source | Clear
   GOLDEN RULE: side-tab order == toolbar order (_SIDE from _TB).
   Visibility is one shared list (chrome.show) — never diverge bars.
+  Opt-in EB-1b: Function, Above, Below, Chunk, Src sel/fn, setwd,
+  Insert <-, Insert pipe, Outline (provisional glyphs — replaceable).
   Send = selection, or the complete statement at caret.
+  Function = enclosing function only.
   Source = whole saved file via `.path` + source(...).
   Arm/Idle and Start/Quit swap icons (on|off).
   Toolbar + side glyphs share one FG picker (icons.py / icons_fg.py);

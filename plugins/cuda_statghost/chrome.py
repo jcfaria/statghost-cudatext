@@ -95,18 +95,36 @@ _TB = (
     ('host', 'Start/Quit STATghost', 'toggle_host', 'power.png'),
     ('sep_send', '-', None, None),
     ('send', 'Send selection, enclosing function, or statement', 'send_selection', 'send.png'),
+    ('function', 'Send enclosing function', 'send_function', 'function.png'),
+    ('above', 'Send above (start→caret)', 'send_above', 'above.png'),
+    ('below', 'Send below (caret→EOF)', 'send_below', 'below.png'),
+    ('chunk', 'Send sniper chunk', 'send_chunk', 'chunk.png'),
     ('source', 'Source file via .paths[4]', 'send_file', 'export.png'),
+    ('srcsel', 'Source selection / function via .paths[5]', 'source_selection', 'source-sel.png'),
     ('clear', 'Clear STATghost Console', 'clear_console', 'clear.png'),
+    ('sep_edit', '-', None, None),
+    ('setwd', 'setwd to file directory', 'set_wd_here', 'setwd.png'),
+    ('assign', 'Insert <-', 'insert_assign', 'assign.png'),
+    ('pipe', 'Insert pipe', 'insert_pipe', 'pipe.png'),
+    ('outline', 'Document outline', 'show_outline', 'outline.png'),
 )
-# _TB_NAMES was the full fixed set; live names come from _tb_names_now().
 
 _SIDE_CAP = {
     'cfg': 'Config',
     'arm': 'Idle',
     'host': 'Start',
     'send': 'Send',
+    'function': 'Function',
+    'above': 'Above',
+    'below': 'Below',
+    'chunk': 'Chunk',
     'source': 'Source',
+    'srcsel': 'Src sel',
     'clear': 'Clear',
+    'setwd': 'setwd',
+    'assign': '<-',
+    'pipe': 'Pipe',
+    'outline': 'Outline',
 }
 _SIDE = tuple(
     (name, _SIDE_CAP.get(name, name), method, icon)
@@ -304,10 +322,43 @@ class Chrome:
     def rebuild_chrome(self):
         """Re-apply visible buttons after Config (toolbar recreate + side)."""
         self.install_toolbar()
+        self._rebuild_side_buttons()
         self._apply_side_visibility()
         self.refresh()
         if self._h_side_bar:
             toolbar_proc(self._h_side_bar, TOOLBAR_UPDATE)
+
+    def _rebuild_side_buttons(self):
+        """Drop and recreate side-tab actions (EB-1b set may grow)."""
+        h_bar = self._h_side_bar
+        if not h_bar:
+            return
+        try:
+            n = toolbar_proc(h_bar, TOOLBAR_GET_COUNT) or 0
+        except Exception:
+            return
+        for i in range(n - 1, -1, -1):
+            toolbar_proc(h_bar, TOOLBAR_DELETE_BUTTON, index=i)
+        il = toolbar_proc(h_bar, TOOLBAR_GET_IMAGELIST)
+        side_icons = self._fill_imagelist(il, 16)
+        self._side_btns = {}
+        for name, cap, method, _icon in _SIDE:
+            toolbar_proc(h_bar, TOOLBAR_ADD_ITEM)
+            cnt = toolbar_proc(h_bar, TOOLBAR_GET_COUNT) or 0
+            hb = toolbar_proc(h_bar, TOOLBAR_GET_BUTTON_HANDLE, index=cnt - 1)
+            if not hb:
+                continue
+            button_proc(hb, BTN_SET_KIND, BTNKIND_TEXT_ICON_HORZ)
+            button_proc(hb, BTN_SET_TEXT, cap)
+            button_proc(hb, BTN_SET_HINT, cap)
+            button_proc(hb, BTN_SET_IMAGEINDEX, side_icons.get(name, -1))
+            button_proc(
+                hb, BTN_SET_DATA1,
+                'module=cuda_statghost;cmd=' + method + ';',
+            )
+            self._side_btns[name] = hb
+        self._side_icon_idx = side_icons
+        toolbar_proc(h_bar, TOOLBAR_SET_WRAP, index=True)
 
     def _create_toolbar(self, h_bar):
         self._btns = {}
@@ -362,7 +413,9 @@ class Chrome:
             if not h_btn:
                 continue
             data2 = button_proc(h_btn, BTN_GET_DATA2) or ''
-            if data2 in (TAG + ':sep', TAG + ':sep_send'):
+            if data2 in (TAG + ':sep', TAG + ':sep_send', TAG + ':sep_edit') or (
+                data2.startswith(TAG + ':sep')
+            ):
                 self._style_sep(h_btn)
 
     def _plugin_names(self, h_bar):
@@ -416,19 +469,29 @@ class Chrome:
     def _apply_imglist(self):
         if not self._imglist:
             return
-        keys = {
-            'send': 'send.png',
-            'source': 'export.png',
-            'clear': 'clear.png',
-            'arm': 'idle',
-            'host': 'power',
-            'cfg': 'setting-lines.png',
-        }
         for name, h_btn in self._btns.items():
             button_proc(h_btn, BTN_SET_IMAGELIST, self._imglist)
-            key = keys.get(name)
-            if key:
-                button_proc(h_btn, BTN_SET_IMAGEINDEX, self._icons.get(key, -1))
+            if name == 'arm':
+                key = 'idle'
+            elif name == 'host':
+                key = 'power'
+            else:
+                key = name
+            button_proc(h_btn, BTN_SET_IMAGEINDEX, self._icons.get(key, -1))
+
+    def _glyph_map(self):
+        """name → png filename for static glyphs (+ armed/kill swaps)."""
+        files = {
+            'armed': 'armed.png',
+            'idle': 'idle.png',
+            'power': 'power.png',
+            'kill': 'kill.png',
+        }
+        for name, _hint, method, icon in _TB:
+            if method is not None and icon:
+                files[name] = icon
+                files[icon] = icon
+        return files
 
     def _load_icons(self, h_bar):
         px = 16
@@ -446,18 +509,8 @@ class Chrome:
             pass
         imagelist_proc(self._imglist, IMAGELIST_SET_SIZE, (px, px))
         folder = os.path.join(_png_dir(), _icon_folder(px))
-        names = {
-            'send.png': 'send.png',
-            'export.png': 'export.png',  # Source file (provisional)
-            'clear.png': 'clear.png',
-            'armed': 'armed.png',
-            'idle': 'idle.png',
-            'power': 'power.png',
-            'kill': 'kill.png',
-            'setting-lines.png': 'setting-lines.png',
-        }
         rgb = icontint.theme_rgb(prefs.get_icons_fg())
-        for key, fname in names.items():
+        for key, fname in self._glyph_map().items():
             path = os.path.join(folder, fname)
             idx = -1
             if os.path.isfile(path):
@@ -486,16 +539,7 @@ class Chrome:
             pass
         imagelist_proc(il, IMAGELIST_SET_SIZE, (px, px))
         folder = os.path.join(_png_dir(), _icon_folder(px))
-        files = {
-            'send': 'send.png',
-            'source': 'export.png',  # Source file (provisional)
-            'clear': 'clear.png',
-            'arm': 'idle.png',
-            'armed': 'armed.png',
-            'host': 'power.png',
-            'kill': 'kill.png',
-            'cfg': 'setting-lines.png',
-        }
+        files = dict(self._glyph_map())
         rgb = icontint.theme_rgb(prefs.get_icons_fg())
         for key, fname in files.items():
             path = os.path.join(folder, fname)

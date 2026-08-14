@@ -156,6 +156,21 @@ class Command:
         if _send_code(text, mode) and end is not None:
             editor.advance_caret_after(end)
 
+    def send_function(self):
+        """Send only the enclosing function at caret (no selection fallback)."""
+        y = editor.caret_line_index()
+        if y is None:
+            msg_status(PLUGIN + ': nothing to send (function)')
+            return
+        n = editor.line_count()
+        fs, fe = enclosing_function(y, editor.get_line, n)
+        if fs is None or fe is None:
+            msg_status(PLUGIN + ': caret not inside a function')
+            return
+        text = '\n'.join(editor.get_line(i) or '' for i in range(fs, fe + 1))
+        if _send_code(text, 'function') and fe is not None:
+            editor.advance_caret_after(fe)
+
     def send_above(self):
         """Send from start of file through caret line (RStudio Ctrl+Alt+B)."""
         y = editor.caret_line_index()

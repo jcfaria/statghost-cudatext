@@ -168,6 +168,7 @@ class TestChromeShow(unittest.TestCase):
             chrome_show.parse_show('clear,cfg,send'),
             ('cfg', 'send', 'clear'),
         )
+        self.assertIn('function', chrome_show.ACTION_KEYS)
 
     def test_filter_keeps_mid_sep(self):
         tb = (
@@ -176,11 +177,16 @@ class TestChromeShow(unittest.TestCase):
             ('arm', 'a', 'toggle_arm', 'b.png'),
             ('sep_send', '-', None, None),
             ('send', 's', 'send_selection', 'c.png'),
+            ('function', 'f', 'send_function', 'f.png'),
             ('clear', 'x', 'clear_console', 'd.png'),
+            ('sep_edit', '-', None, None),
+            ('outline', 'o', 'show_outline', 'o.png'),
         )
-        rows = chrome_show.filter_toolbar_rows(tb, ('cfg', 'send'))
+        rows = chrome_show.filter_toolbar_rows(tb, ('cfg', 'send', 'outline'))
         names = [r[0] for r in rows]
-        self.assertEqual(names, ['sep', 'cfg', 'sep_send', 'send'])
+        self.assertEqual(
+            names, ['sep', 'cfg', 'sep_send', 'send', 'sep_edit', 'outline'],
+        )
 
     def test_filter_empty(self):
         tb = (

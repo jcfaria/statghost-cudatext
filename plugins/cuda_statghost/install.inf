@@ -15,6 +15,11 @@ caption=STATghost\Send selection / function / statement
 method=send_selection
 hotkey=Ctrl+Enter
 
+[item19]
+section=commands
+caption=STATghost\Send enclosing function
+method=send_function
+
 [item9]
 section=commands
 caption=STATghost\Send above (start→caret)

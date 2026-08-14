@@ -3,7 +3,6 @@
 # dlg_custom (not dlg_proc): gtk2 TButton on_change via bound methods never
 # fired — checkbox worked, OK/Cancel painted dead. Opened from Options →
 # Settings-plugins → STATghost → Config.
-# Size: compact (~CudaText comment-config scale), not a full Settings page.
 
 from __future__ import annotations
 
@@ -27,9 +26,9 @@ except ImportError:
 PLUGIN = 'STATghost'
 _C1 = chr(1)
 
-# Client size — send prefs + icons FG + chrome show + exe.
-_W = 420
-_H = 408
+# Spacious classroom Config (owner: was too cramped).
+_W = 480
+_H = 560
 
 # Indices must match the control list below (top → bottom).
 _IDX_COLLAPSE = 0
@@ -43,19 +42,32 @@ _IDX_ICONS = 7
 _IDX_SHOW_LBL = 8
 _IDX_ALL = 9
 _IDX_NONE = 10
-_IDX_CHK_CFG = 11
-_IDX_CHK_ARM = 12
-_IDX_CHK_HOST = 13
-_IDX_CHK_SEND = 14
-_IDX_CHK_SOURCE = 15
-_IDX_CHK_CLEAR = 16
-_IDX_EXE_LBL = 17
-_IDX_EXE = 18
-_IDX_BROWSE = 19
-_IDX_HINT = 20
-_IDX_DET = 21
-_IDX_OK = 22
-_IDX_CANCEL = 23
+# 15 chrome checks (11..25)
+_IDX_CHK0 = 11
+_SHOW_DEFS = (
+    ('cfg', 'Config'),
+    ('arm', 'Arm/Idle'),
+    ('host', 'Start/Quit'),
+    ('send', 'Send'),
+    ('function', 'Function'),
+    ('above', 'Above'),
+    ('below', 'Below'),
+    ('chunk', 'Chunk'),
+    ('source', 'Source'),
+    ('srcsel', 'Src sel/fn'),
+    ('clear', 'Clear'),
+    ('setwd', 'setwd'),
+    ('assign', 'Insert <-'),
+    ('pipe', 'Insert pipe'),
+    ('outline', 'Outline'),
+)
+_IDX_EXE_LBL = _IDX_CHK0 + len(_SHOW_DEFS)
+_IDX_EXE = _IDX_EXE_LBL + 1
+_IDX_BROWSE = _IDX_EXE + 1
+_IDX_HINT = _IDX_BROWSE + 1
+_IDX_DET = _IDX_HINT + 1
+_IDX_OK = _IDX_DET + 1
+_IDX_CANCEL = _IDX_OK + 1
 
 _PIPE_ITEMS = ('|>  (native R 4.1+)', '%>%  (magrittr)')
 _ICONS_FG_ITEMS = (
@@ -66,16 +78,6 @@ _ICONS_FG_ITEMS = (
 )
 _ICONS_FG_KEYS = ('auto', 'light', 'dark', 'theme')
 
-_SHOW_CHECKS = (
-    (_IDX_CHK_CFG, 'cfg', 'Config'),
-    (_IDX_CHK_ARM, 'arm', 'Arm/Idle'),
-    (_IDX_CHK_HOST, 'host', 'Start/Quit'),
-    (_IDX_CHK_SEND, 'send', 'Send'),
-    (_IDX_CHK_SOURCE, 'source', 'Source'),
-    (_IDX_CHK_CLEAR, 'clear', 'Clear'),
-)
-
-# Fallback if PROC_ENUM_ENCODINGS is empty (very old CudaText).
 _FALLBACK_ENCS = (
     'utf-8',
     'utf-16 le',
@@ -93,7 +95,6 @@ def _ctl(*parts):
 
 
 def _as_bool(val):
-    """dlg_custom check val is normally '0'/'1'; tolerate odd gtk2 returns."""
     if val is True or val == 1:
         return True
     if val is False or val == 0:
@@ -111,7 +112,6 @@ def _short_path(text, n=48):
 
 
 def _cuda_encodings():
-    """CudaText encoding names (PROC_ENUM_ENCODINGS)."""
     try:
         raw = app_proc(PROC_ENUM_ENCODINGS, '')
     except Exception:
@@ -136,7 +136,6 @@ def _cuda_encodings():
 
 
 def _enc_index(encs, wanted):
-    """Index of wanted encoding in encs (case-insensitive); else utf-8/0."""
     w = (wanted or '').strip().lower().replace('_', '-')
     if not w:
         w = 'utf-8'
@@ -174,15 +173,41 @@ def _icons_fg_index():
 
 def _show_dict_from_prefs():
     on = set(prefs.get_chrome_show())
-    return {key: (key in on) for _idx, key, _cap in _SHOW_CHECKS}
+    return {key: (key in on) for key, _cap in _SHOW_DEFS}
 
 
 def _read_show_from_res(res, show_on):
     out = dict(show_on)
-    for idx, key, _cap in _SHOW_CHECKS:
+    for i, (key, _cap) in enumerate(_SHOW_DEFS):
+        idx = _IDX_CHK0 + i
         if idx in res:
             out[key] = _as_bool(res.get(idx))
     return out
+
+
+def _check_grid_ctls(show_on):
+    """3-column checkbox grid with comfortable row pitch."""
+    rows = []
+    cols = (
+        (12, 150),
+        (168, 310),
+        (328, 468),
+    )
+    y0 = 214
+    row_h = 30
+    for i, (key, cap) in enumerate(_SHOW_DEFS):
+        r = i // 3
+        c = i % 3
+        x1, x2 = cols[c]
+        y1 = y0 + r * row_h
+        y2 = y1 + 26
+        rows.append(_ctl(
+            'type=check',
+            'cap=' + cap,
+            'val=' + ('1' if show_on.get(key) else '0'),
+            'pos=%d,%d,%d,%d' % (x1, y1, x2, y2),
+        ))
+    return rows
 
 
 def show_config():
@@ -200,75 +225,68 @@ def show_config():
         ('Detected: ' + _short_path(detected)) if detected else ''
     )
 
+    # Checkbox block ends ~ y=214+5*30=364; exe below with air.
+    y_exe_lbl = 378
+    y_exe = 400
+    y_hint = 436
+    y_det = 458
+    y_ok = 520
+
     while True:
-        text = '\n'.join([
+        ctls = [
             _ctl('type=check',
                  'cap=Send wraps as one Console line',
                  'val=' + ('1' if collapse else '0'),
-                 'pos=8,6,404,28'),
+                 'pos=12,10,468,36'),
             _ctl('type=check',
                  'cap=Source file: echo = TRUE',
                  'val=' + ('1' if src_echo else '0'),
-                 'pos=8,32,404,54'),
+                 'pos=12,42,468,68'),
             _ctl('type=label', 'cap=Source file encoding',
-                 'pos=8,60,200,76'),
+                 'pos=12,82,220,104'),
             _ctl('type=combo_ro',
                  'items=' + '\t'.join(encs),
                  'val=' + str(enc_idx),
-                 'pos=210,58,404,82'),
+                 'pos=230,78,468,108'),
             _ctl('type=label', 'cap=Insert pipe (Ctrl+Shift+M)',
-                 'pos=8,88,220,104'),
+                 'pos=12,120,220,142'),
             _ctl('type=combo_ro',
                  'items=' + '\t'.join(_PIPE_ITEMS),
                  'val=' + str(pipe_idx),
-                 'pos=230,86,404,110'),
+                 'pos=230,116,468,146'),
             _ctl('type=label', 'cap=Toolbar / side icons FG',
-                 'pos=8,116,220,132'),
+                 'pos=12,158,220,180'),
             _ctl('type=combo_ro',
                  'items=' + '\t'.join(_ICONS_FG_ITEMS),
                  'val=' + str(icons_idx),
-                 'pos=230,114,404,138'),
+                 'pos=230,154,468,184'),
             _ctl('type=label',
                  'cap=Toolbar / side buttons (same set)',
-                 'pos=8,146,280,162'),
+                 'pos=12,196,300,214'),
             _ctl('type=button', 'cap=All',
-                 'pos=288,144,340,168'),
+                 'pos=320,192,388,218'),
             _ctl('type=button', 'cap=None',
-                 'pos=348,144,404,168'),
-            _ctl('type=check', 'cap=Config',
-                 'val=' + ('1' if show_on['cfg'] else '0'),
-                 'pos=8,172,140,196'),
-            _ctl('type=check', 'cap=Arm/Idle',
-                 'val=' + ('1' if show_on['arm'] else '0'),
-                 'pos=148,172,280,196'),
-            _ctl('type=check', 'cap=Start/Quit',
-                 'val=' + ('1' if show_on['host'] else '0'),
-                 'pos=288,172,404,196'),
-            _ctl('type=check', 'cap=Send',
-                 'val=' + ('1' if show_on['send'] else '0'),
-                 'pos=8,200,140,224'),
-            _ctl('type=check', 'cap=Source',
-                 'val=' + ('1' if show_on['source'] else '0'),
-                 'pos=148,200,280,224'),
-            _ctl('type=check', 'cap=Clear',
-                 'val=' + ('1' if show_on['clear'] else '0'),
-                 'pos=288,200,404,224'),
+                 'pos=396,192,468,218'),
+        ]
+        ctls.extend(_check_grid_ctls(show_on))
+        ctls.extend([
             _ctl('type=label', 'cap=STATghost executable',
-                 'pos=8,236,280,252'),
+                 'pos=12,%d,300,%d' % (y_exe_lbl, y_exe_lbl + 20)),
             _ctl('type=edit', 'name=exe', 'val=' + path,
-                 'pos=8,254,300,278'),
+                 'pos=12,%d,360,%d' % (y_exe, y_exe + 28)),
             _ctl('type=button', 'cap=Browse…',
-                 'pos=308,254,404,278'),
+                 'pos=372,%d,468,%d' % (y_exe, y_exe + 28)),
             _ctl('type=label',
                  'cap=Empty = auto-detect. Hidden buttons stay in Plugins menu.',
-                 'pos=8,284,404,300'),
+                 'pos=12,%d,468,%d' % (y_hint, y_hint + 18)),
             _ctl('type=label', 'cap=' + det_cap,
-                 'pos=8,300,404,316'),
+                 'pos=12,%d,468,%d' % (y_det, y_det + 18)),
             _ctl('type=button', 'cap=OK',
-                 'pos=220,368,308,392'),
+                 'pos=268,%d,362,%d' % (y_ok, y_ok + 28)),
             _ctl('type=button', 'cap=Cancel', 'ex0=1',
-                 'pos=316,368,404,392'),
+                 'pos=374,%d,468,%d' % (y_ok, y_ok + 28)),
         ])
+        text = '\n'.join(ctls)
         res = dlg_custom(PLUGIN + ' plugin', _W, _H, text, get_dict=True)
         if res is None:
             return False
@@ -299,10 +317,10 @@ def show_config():
         show_on = _read_show_from_res(res, show_on)
         clicked = res.get('clicked')
         if clicked == _IDX_ALL:
-            show_on = {key: True for _i, key, _c in _SHOW_CHECKS}
+            show_on = {key: True for key, _c in _SHOW_DEFS}
             continue
         if clicked == _IDX_NONE:
-            show_on = {key: False for _i, key, _c in _SHOW_CHECKS}
+            show_on = {key: False for key, _c in _SHOW_DEFS}
             continue
         if clicked == _IDX_BROWSE:
             init_dir = os.path.dirname(path) if path else ''
@@ -319,11 +337,10 @@ def show_config():
         if path and (not os.path.isfile(path)):
             msg_status(PLUGIN + ': file not found — ' + path)
             continue
-        # Empty selection → classroom default (all on).
-        chosen = [key for _i, key, _c in _SHOW_CHECKS if show_on.get(key)]
+        chosen = [key for key, _c in _SHOW_DEFS if show_on.get(key)]
         if not chosen:
             chosen = list(chrome_show.DEFAULT_SHOW)
-            msg_status(PLUGIN + ': no buttons selected — restored all')
+            msg_status(PLUGIN + ': no buttons selected — restored defaults')
         prefs.set_exe(path)
         prefs.set_collapse(collapse)
         prefs.set_source_echo(src_echo)
@@ -331,15 +348,10 @@ def show_config():
         prefs.set_pipe_token('magrittr' if pipe_idx == 1 else 'native')
         prefs.set_icons_fg(_ICONS_FG_KEYS[icons_idx])
         prefs.set_chrome_show(chosen)
-        got = prefs.get_collapse()
         msg_status(
-            PLUGIN + ': settings saved — collapse '
-            + ('ON' if got else 'OFF')
+            PLUGIN + ': settings saved — buttons '
+            + ','.join(prefs.get_chrome_show())
             + ', icons FG '
             + prefs.get_icons_fg()
-            + ', buttons '
-            + ','.join(prefs.get_chrome_show())
-            + ', encoding '
-            + prefs.get_source_encoding()
         )
         return True
