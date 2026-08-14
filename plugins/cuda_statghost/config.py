@@ -25,9 +25,9 @@ except ImportError:
 PLUGIN = 'STATghost'
 _C1 = chr(1)
 
-# Client size — collapse + Source echo/encoding + pipe + exe.
+# Client size — collapse + Source echo/encoding + pipe + icons FG + exe.
 _W = 420
-_H = 276
+_H = 304
 
 # Indices must match the control list below (top → bottom).
 _IDX_COLLAPSE = 0
@@ -36,15 +36,24 @@ _IDX_ENC_LBL = 2
 _IDX_ENC = 3
 _IDX_PIPE_LBL = 4
 _IDX_PIPE = 5
-_IDX_EXE_LBL = 6
-_IDX_EXE = 7
-_IDX_BROWSE = 8
-_IDX_HINT = 9
-_IDX_DET = 10
-_IDX_OK = 11
-_IDX_CANCEL = 12
+_IDX_ICONS_LBL = 6
+_IDX_ICONS = 7
+_IDX_EXE_LBL = 8
+_IDX_EXE = 9
+_IDX_BROWSE = 10
+_IDX_HINT = 11
+_IDX_DET = 12
+_IDX_OK = 13
+_IDX_CANCEL = 14
 
 _PIPE_ITEMS = ('|>  (native R 4.1+)', '%>%  (magrittr)')
+_ICONS_FG_ITEMS = (
+    'auto  (contrast vs theme)',
+    'light  (light icons)',
+    'dark  (dark icons)',
+    'theme  (ButtonFont raw)',
+)
+_ICONS_FG_KEYS = ('auto', 'light', 'dark', 'theme')
 
 # Fallback if PROC_ENUM_ENCODINGS is empty (very old CudaText).
 _FALLBACK_ENCS = (
@@ -138,6 +147,14 @@ def _pipe_index():
     return 1 if tok == '%>%' else 0
 
 
+def _icons_fg_index():
+    key = prefs.get_icons_fg()
+    try:
+        return _ICONS_FG_KEYS.index(key)
+    except ValueError:
+        return 0
+
+
 def show_config():
     path = prefs.get_exe() or host.find_exe(ignore_ini=True) or ''
     collapse = prefs.get_collapse()
@@ -146,6 +163,7 @@ def show_config():
     encs = _cuda_encodings()
     enc_idx = _enc_index(encs, encoding)
     pipe_idx = _pipe_index()
+    icons_idx = _icons_fg_index()
     detected = host.find_exe(ignore_ini=True) or ''
     det_cap = (
         ('Detected: ' + _short_path(detected)) if detected else ''
@@ -173,21 +191,27 @@ def show_config():
                  'items=' + '\t'.join(_PIPE_ITEMS),
                  'val=' + str(pipe_idx),
                  'pos=230,86,404,110'),
+            _ctl('type=label', 'cap=Toolbar / side icons FG',
+                 'pos=8,116,220,132'),
+            _ctl('type=combo_ro',
+                 'items=' + '\t'.join(_ICONS_FG_ITEMS),
+                 'val=' + str(icons_idx),
+                 'pos=230,114,404,138'),
             _ctl('type=label', 'cap=STATghost executable',
-                 'pos=8,118,280,134'),
+                 'pos=8,146,280,162'),
             _ctl('type=edit', 'name=exe', 'val=' + path,
-                 'pos=8,136,300,160'),
+                 'pos=8,164,300,188'),
             _ctl('type=button', 'cap=Browse…',
-                 'pos=308,136,404,160'),
+                 'pos=308,164,404,188'),
             _ctl('type=label',
                  'cap=Empty = auto-detect (sibling / PATH).',
-                 'pos=8,166,404,182'),
+                 'pos=8,194,404,210'),
             _ctl('type=label', 'cap=' + det_cap,
-                 'pos=8,182,404,198'),
+                 'pos=8,210,404,226'),
             _ctl('type=button', 'cap=OK',
-                 'pos=220,236,308,260'),
+                 'pos=220,264,308,288'),
             _ctl('type=button', 'cap=Cancel', 'ex0=1',
-                 'pos=316,236,404,260'),
+                 'pos=316,264,404,288'),
         ])
         res = dlg_custom(PLUGIN + ' plugin', _W, _H, text, get_dict=True)
         if res is None:
@@ -206,6 +230,14 @@ def show_config():
             pipe_idx = _pipe_index()
         if pipe_idx not in (0, 1):
             pipe_idx = 0
+        try:
+            icons_idx = int(str(
+                res.get(_IDX_ICONS) if res.get(_IDX_ICONS) is not None else icons_idx
+            ))
+        except (TypeError, ValueError):
+            icons_idx = _icons_fg_index()
+        if icons_idx < 0 or icons_idx >= len(_ICONS_FG_KEYS):
+            icons_idx = 0
         collapse = _as_bool(res.get(_IDX_COLLAPSE))
         src_echo = _as_bool(res.get(_IDX_SRC_ECHO))
         clicked = res.get('clicked')
@@ -229,6 +261,7 @@ def show_config():
         prefs.set_source_echo(src_echo)
         prefs.set_source_encoding(encoding)
         prefs.set_pipe_token('magrittr' if pipe_idx == 1 else 'native')
+        prefs.set_icons_fg(_ICONS_FG_KEYS[icons_idx])
         got = prefs.get_collapse()
         msg_status(
             PLUGIN + ': settings saved — collapse '
@@ -237,6 +270,8 @@ def show_config():
             + ('TRUE' if prefs.get_source_echo() else 'FALSE')
             + ', pipe '
             + prefs.get_pipe_token()
+            + ', icons FG '
+            + prefs.get_icons_fg()
             + ', encoding '
             + prefs.get_source_encoding()
         )

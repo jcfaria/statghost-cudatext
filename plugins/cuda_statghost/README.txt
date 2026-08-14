@@ -64,6 +64,8 @@ Config (Options → Settings-plugins → STATghost → Config):
     R names on send, e.g. utf-8 → UTF-8). R Armed + companion loaded.
     No absolute editor path on the Console.
   [edit] pipe=native|magrittr — Insert pipe (Ctrl+Shift+M): `|>` or `%>%`
+  [icons] fg=auto|light|dark|theme — toolbar + side-tab glyph FG
+    (default auto: high contrast vs ButtonBg/TabBg; theme = raw ButtonFont)
 
 Chrome (VP-EB-1b, native):
   Main toolbar: Config | Arm/Idle | Start/Quit | Send | Source | Clear
@@ -71,8 +73,8 @@ Chrome (VP-EB-1b, native):
   Send = selection, or the complete statement at caret.
   Source = whole saved file via `.path` + source(...).
   Arm/Idle and Start/Quit swap icons (on|off).
-  Toolbar glyphs are tinted to the UI theme ButtonFont (icons.py);
-  brand side-tab icon is left as-is.
+  Toolbar + side glyphs share one FG picker (icons.py / icons_fg.py);
+  brand side-tab icon is left as-is. Reloads on theme / Config OK.
   Side tab "STATghost" (same row as Code tree / Projects):
     control deck — Host/Arm status + the same actions (mission §5).
     Not Console/Plot/Explorer. Opens on start only if STATghost is up.

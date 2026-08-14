@@ -18,6 +18,7 @@ _collapse_cache = None
 _source_echo_cache = None
 _source_encoding_cache = None
 _pipe_cache = None
+_icons_fg_cache = None
 
 
 def ini_path():
@@ -113,6 +114,31 @@ def set_pipe_token(kind):
     else:
         ini_write(ini_path(), 'edit', 'pipe', 'native')
         _pipe_cache = '|>'
+
+
+def get_icons_fg():
+    """Icon FG: auto (default) | light | dark | theme (raw ButtonFont)."""
+    global _icons_fg_cache
+    if _icons_fg_cache is not None:
+        return str(_icons_fg_cache)
+    raw = ini_read(ini_path(), 'icons', 'fg', 'auto')
+    if raw is None or str(raw).strip() == '':
+        raw = 'auto'
+    key = str(raw).strip().lower()
+    if key not in ('auto', 'light', 'dark', 'theme'):
+        key = 'auto'
+    _icons_fg_cache = key
+    return str(_icons_fg_cache)
+
+
+def set_icons_fg(mode):
+    """mode: auto | light | dark | theme."""
+    global _icons_fg_cache
+    key = (mode or '').strip().lower()
+    if key not in ('auto', 'light', 'dark', 'theme'):
+        key = 'auto'
+    ini_write(ini_path(), 'icons', 'fg', key)
+    _icons_fg_cache = key
 
 
 def encoding_for_r(enc=None):

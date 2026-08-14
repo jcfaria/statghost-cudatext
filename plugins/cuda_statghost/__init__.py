@@ -341,9 +341,11 @@ class Command:
         chrome.get(self).refresh()
 
     def config(self):
-        """Plugin settings — STATghost executable path."""
-        plugincfg.show_config()
-        chrome.get(self).refresh()
+        """Plugin settings — STATghost executable path / icons FG."""
+        if plugincfg.show_config():
+            chrome.get(self).reload_icons()
+        else:
+            chrome.get(self).refresh()
 
     def open_side(self):
         """Sidebar button / Plugins → STATghost side tab."""

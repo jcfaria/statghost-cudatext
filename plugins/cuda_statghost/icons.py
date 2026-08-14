@@ -1,6 +1,10 @@
-# Tint monochrome toolbar glyphs to the current CudaText UI theme.
+# Tint monochrome toolbar glyphs for CudaText chrome.
 # Source PNGs stay black-on-transparent (Flaticon). Brand artwork is
 # not passed through here. Stdlib only — CudaText has no Pillow.
+#
+# ButtonFont alone is not enough: some UI themes put a dark ButtonFont
+# on a dark TabBg/ButtonBg (near-invisible glyphs). Default mode
+# `auto` picks a high-contrast FG; Config can force light/dark/theme.
 
 from __future__ import annotations
 
@@ -14,26 +18,67 @@ from cudatext import PROC_THEME_UI_GET
 from cudatext import app_path
 from cudatext import app_proc
 
+try:
+    from . import prefs
+    from .icons_fg import clamp_mode
+    from .icons_fg import pick_fg_rgb
+except ImportError:
+    import prefs
+    from icons_fg import clamp_mode
+    from icons_fg import pick_fg_rgb
+
 _PNG_SIG = b'\x89PNG\r\n\x1a\n'
 
 
-def theme_rgb():
-    """ButtonFont as (r, g, b). Theme dict color is LCL TColor (BGR)."""
-    d = app_proc(PROC_THEME_UI_DICT_GET, '') or {}
-    item = d.get('ButtonFont') or {}
+def _theme_dict():
+    return app_proc(PROC_THEME_UI_DICT_GET, '') or {}
+
+
+def _color_rgb(name, fallback=(0x90, 0x90, 0x90)):
+    """Theme dict color is LCL TColor (BGR packed int)."""
+    item = _theme_dict().get(name) or {}
     c = item.get('color')
     if not isinstance(c, int):
-        return (0x90, 0x90, 0x90)
+        return fallback
     return (c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF)
 
 
-def theme_tag():
+def _bg_rgb():
+    """Chrome behind toolbar / side-tab buttons."""
+    d = _theme_dict()
+    for name in ('ButtonBgPassive', 'TabBg', 'EdTextBg', 'ButtonBg'):
+        item = d.get(name) or {}
+        c = item.get('color')
+        if isinstance(c, int):
+            return (c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF)
+    return (0x2A, 0x2A, 0x2A)
+
+
+def theme_rgb(mode=None):
+    """Icon FG as (r, g, b) for the active mode (default: prefs)."""
+    if mode is None:
+        mode = prefs.get_icons_fg()
+    mode = clamp_mode(mode)
+    button_font = _color_rgb('ButtonFont', (0x90, 0x90, 0x90))
+    bg = _bg_rgb()
+    candidates = (
+        _color_rgb('TabFont', button_font),
+        _color_rgb('EdTextFont', button_font),
+        _color_rgb('ListFont', button_font),
+    )
+    return pick_fg_rgb(mode, button_font, bg, candidates)
+
+
+def theme_tag(mode=None):
+    if mode is None:
+        mode = prefs.get_icons_fg()
+    mode = clamp_mode(mode)
     name = app_proc(PROC_THEME_UI_GET, '') or 'theme'
     safe = ''.join(
         ch if ch.isalnum() or ch in '-_' else '_' for ch in str(name)
     )
-    r, g, b = theme_rgb()
-    return '%s_%02x%02x%02x' % (safe, r, g, b)
+    r, g, b = theme_rgb(mode)
+    return '%s_%s_%02x%02x%02x' % (safe, mode, r, g, b)
 
 
 def cache_dir():
@@ -42,12 +87,12 @@ def cache_dir():
     return d
 
 
-def tinted_path(src_path, rgb=None):
+def tinted_path(src_path, rgb=None, mode=None):
     """Write a themed copy next to settings; return that path."""
     if rgb is None:
-        rgb = theme_rgb()
+        rgb = theme_rgb(mode)
     base = os.path.basename(src_path)
-    out = os.path.join(cache_dir(), theme_tag() + '_' + base)
+    out = os.path.join(cache_dir(), theme_tag(mode) + '_' + base)
     if os.path.isfile(out) and os.path.getmtime(out) >= os.path.getmtime(src_path):
         return out
     w, h, pix = _read_rgba(src_path)

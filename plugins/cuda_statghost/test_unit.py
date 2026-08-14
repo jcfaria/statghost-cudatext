@@ -14,6 +14,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import paths  # noqa: E402
 import protocol  # noqa: E402
 import statement  # noqa: E402
+import icons_fg  # noqa: E402
+import outline  # noqa: E402
+import ranges  # noqa: E402
 
 
 def _lines(text):
@@ -157,8 +160,25 @@ z = 1
         self.assertEqual(e, 2)
 
 
-import outline  # noqa: E402
-import ranges  # noqa: E402
+class TestIconFg(unittest.TestCase):
+    def test_force_modes(self):
+        bg = (0x1C, 0x1C, 0x1C)
+        font = (0x44, 0x44, 0x44)
+        self.assertEqual(icons_fg.pick_fg_rgb('light', font, bg), (0xE8, 0xE8, 0xE8))
+        self.assertEqual(icons_fg.pick_fg_rgb('dark', font, bg), (0x20, 0x20, 0x20))
+        self.assertEqual(icons_fg.pick_fg_rgb('theme', font, bg), font)
+
+    def test_auto_rejects_dark_on_dark(self):
+        bg = (0x1C, 0x1C, 0x1C)
+        font = (0x44, 0x44, 0x44)
+        fg = icons_fg.pick_fg_rgb('auto', font, bg)
+        self.assertEqual(fg, (0xE8, 0xE8, 0xE8))
+        self.assertGreaterEqual(icons_fg.contrast_ratio(fg, bg), 3.0)
+
+    def test_auto_keeps_good_buttonfont(self):
+        bg = (0x1C, 0x1C, 0x1C)
+        font = (0xE0, 0xE0, 0xE0)
+        self.assertEqual(icons_fg.pick_fg_rgb('auto', font, bg), font)
 
 
 class TestOutline(unittest.TestCase):

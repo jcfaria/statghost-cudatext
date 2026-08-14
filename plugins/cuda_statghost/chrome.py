@@ -28,6 +28,7 @@ from cudatext import DLG_CTL_PROP_SET
 from cudatext import DLG_PROP_SET
 from cudatext import IMAGELIST_ADD
 from cudatext import IMAGELIST_CREATE
+from cudatext import IMAGELIST_DELETE_ALL
 from cudatext import IMAGELIST_GET_SIZE
 from cudatext import IMAGELIST_SET_SIZE
 from cudatext import LISTBOX_ADD
@@ -64,10 +65,12 @@ try:
     from . import host
     from . import icons as icontint
     from . import outline as sgoutline
+    from . import prefs
 except ImportError:
     import host
     import icons as icontint
     import outline as sgoutline
+    import prefs
 
 PLUGIN = 'STATghost'
 TITLE = 'STATghost'
@@ -182,6 +185,7 @@ class Chrome:
         self._icons = {}
         self._imglist = None
         self._h_dlg = None
+        self._h_side_bar = None
         self._h_side_list = None
         self._side_btns = {}
         self._side_icon_idx = {}
@@ -374,15 +378,19 @@ class Chrome:
         return found
 
     def reload_icons(self):
+        """Re-tint toolbar + side glyphs (theme change or Config icons FG)."""
         try:
             h_bar = app_proc(PROC_GET_MAIN_TOOLBAR, '')
         except Exception:
             h_bar = None
         self._load_icons(h_bar)
         self._apply_imglist()
+        self._reload_side_icons()
         self.refresh()
         if h_bar:
             toolbar_proc(h_bar, TOOLBAR_UPDATE)
+        if self._h_side_bar:
+            toolbar_proc(self._h_side_bar, TOOLBAR_UPDATE)
 
     def _apply_imglist(self):
         if not self._imglist:
@@ -411,6 +419,10 @@ class Chrome:
                     px = int(size[0])
         if self._imglist is None:
             self._imglist = imagelist_proc(0, IMAGELIST_CREATE, value=0)
+        try:
+            imagelist_proc(self._imglist, IMAGELIST_DELETE_ALL)
+        except Exception:
+            pass
         imagelist_proc(self._imglist, IMAGELIST_SET_SIZE, (px, px))
         folder = os.path.join(_png_dir(), _icon_folder(px))
         names = {
@@ -423,7 +435,7 @@ class Chrome:
             'kill': 'kill.png',
             'setting-lines.png': 'setting-lines.png',
         }
-        rgb = icontint.theme_rgb()
+        rgb = icontint.theme_rgb(prefs.get_icons_fg())
         for key, fname in names.items():
             path = os.path.join(folder, fname)
             idx = -1
@@ -447,6 +459,10 @@ class Chrome:
         out = {}
         if not il:
             return out
+        try:
+            imagelist_proc(il, IMAGELIST_DELETE_ALL)
+        except Exception:
+            pass
         imagelist_proc(il, IMAGELIST_SET_SIZE, (px, px))
         folder = os.path.join(_png_dir(), _icon_folder(px))
         files = {
@@ -459,7 +475,7 @@ class Chrome:
             'kill': 'kill.png',
             'cfg': 'setting-lines.png',
         }
-        rgb = icontint.theme_rgb()
+        rgb = icontint.theme_rgb(prefs.get_icons_fg())
         for key, fname in files.items():
             path = os.path.join(folder, fname)
             idx = -1
@@ -477,6 +493,23 @@ class Chrome:
                     idx = -1
             out[key] = idx
         return out
+
+    def _reload_side_icons(self):
+        """Re-tint side-tab imagelist after theme / icons-FG change."""
+        if not self._h_side_bar:
+            return
+        il = toolbar_proc(self._h_side_bar, TOOLBAR_GET_IMAGELIST)
+        if not il:
+            return
+        side_icons = self._fill_imagelist(il, 16)
+        self._side_icon_idx = side_icons
+        for name, hb in self._side_btns.items():
+            if name == 'arm':
+                continue
+            if name == 'host':
+                continue
+            button_proc(hb, BTN_SET_IMAGEINDEX, side_icons.get(name, -1))
+        # arm/host indices follow Armed/Idle state in refresh()
 
     def _ensure_side(self):
         if self._side_ready and self._h_dlg:
@@ -500,6 +533,7 @@ class Chrome:
             'autosize': True,
         })
         h_bar = dlg_proc(h, DLG_CTL_HANDLE, index=n)
+        self._h_side_bar = h_bar
         self._side_btns = {}
         if h_bar:
             toolbar_proc(h_bar, TOOLBAR_THEME)
