@@ -15,19 +15,33 @@ Layout (add a module, not a god-file):
   config.py       plugin Config UI
   editor.py       caret / selection / advance
   statement.py    R statement bounds + enclosing function + collapse_wraps
-  chrome.py       native toolbar + side tab (cuda_r_plugin API recipe)
+  outline.py      document outline (sections + functions)
+  ranges.py       send above/below / sniper chunk text helpers
+  chrome.py       native toolbar + side tab (status + outline)
   bar.py          retired experimental docked strip (do not auto-show)
-  test_unit.py    automated checks (no CudaText): collapse / protocol / paths / function
+  test_unit.py    automated checks (no CudaText host)
   png/            toolbar / sidebar glyphs (16/24/32; no Explorer set)
 
 TF (no host):
   python3 test_unit.py
 
 Send (no selection):
-  1. If the caret is inside `name <- function(...) { … }` (any body line,
-     brace, or blank/comment in the block) → send the **whole function**
-     (innermost when nested). Same idea as RStudio “run function”.
-  2. Else → complete statement at caret (brackets / if-else), then advance.
+  1. If the caret is inside `name <- function(...) { … }` → whole function
+     (innermost when nested). RStudio-style.
+  2. Else → complete statement at caret, then advance.
+
+Also (Plugins → STATghost / hotkeys on first install):
+  Ctrl+Enter     Send selection / function / statement
+  Ctrl+Alt+B     Send above (start→caret)
+  Ctrl+Alt+E     Send below (caret→EOF)
+  Ctrl+Shift+S   Source file (.paths[4])
+  Ctrl+Shift+O   Outline…
+  Alt+-          Insert ` <- `
+  Ctrl+Shift+M   Insert pipe (`|>` default; magrittr via prefs)
+  Source selection / function → .paths[5]
+  setwd to file directory
+  Send sniper chunk (blank/# cut)
+  Side tab: host status + outline (double-click to jump)
 
 New classroom action:
   1. Command method in __init__.py (one-liner)

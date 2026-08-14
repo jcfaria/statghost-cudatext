@@ -157,5 +157,49 @@ z = 1
         self.assertEqual(e, 2)
 
 
+import outline  # noqa: E402
+import ranges  # noqa: E402
+
+
+class TestOutline(unittest.TestCase):
+    def test_sections_and_functions(self):
+        src = '''\
+# ---- Setup ----
+x <- 1
+
+## Model
+fit <- function(y) {
+  y
+}
+'''
+        rows = _lines(src)
+        items = outline.collect_outline(_get(rows), len(rows))
+        kinds = [it['kind'] for it in items]
+        self.assertIn('section', kinds)
+        self.assertIn('function', kinds)
+        titles = [it['title'] for it in items]
+        self.assertTrue(any('Setup' in t or t == 'Setup' for t in titles))
+        self.assertIn('fit', titles)
+
+
+class TestRanges(unittest.TestCase):
+    def test_above_below(self):
+        rows = _lines('a\nb\nc\n')
+        self.assertEqual(ranges.lines_from_start(_get(rows), 1, len(rows)), 'a\nb')
+        self.assertEqual(ranges.lines_to_end(_get(rows), 1, len(rows)), 'b\nc\n')
+
+    def test_sniper_chunk(self):
+        rows = _lines('a <- 1\nb <- 2\n\nc <- 3\n')
+
+        def is_cut(line):
+            s = (line or '').strip()
+            return s == '' or s.startswith('#')
+
+        s, e = ranges.sniper_chunk_bounds(0, _get(rows), len(rows), is_cut)
+        self.assertEqual((s, e), (0, 1))
+        s2, e2 = ranges.sniper_chunk_bounds(3, _get(rows), len(rows), is_cut)
+        self.assertEqual((s2, e2), (3, 3))
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

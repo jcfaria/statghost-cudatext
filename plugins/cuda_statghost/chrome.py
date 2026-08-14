@@ -63,9 +63,11 @@ from cudatext import toolbar_proc
 try:
     from . import host
     from . import icons as icontint
+    from . import outline as sgoutline
 except ImportError:
     import host
     import icons as icontint
+    import outline as sgoutline
 
 PLUGIN = 'STATghost'
 TITLE = 'STATghost'
@@ -185,6 +187,8 @@ class Chrome:
         self._side_icon_idx = {}
         self._side_ready = False
         self._timer = False
+        self._outline_items = []
+        self._outline_hdr = 0  # status lines before outline entries
         # False while the toolbar is being built — ADD_ITEM must not
         # fire Start/Quit. STATghost never auto-starts with CudaText.
         self._host_cmd_ok = False
@@ -527,6 +531,7 @@ class Chrome:
             'sp_r': 6,
             'sp_t': 6,
             'sp_b': 6,
+            'on_click_dbl': 'module=cuda_statghost;cmd=outline_jump;',
         })
         self._h_side_list = dlg_proc(h, DLG_CTL_HANDLE, index=n)
         if self._h_side_list:
@@ -539,6 +544,32 @@ class Chrome:
             msg_status(PLUGIN + ': side tab — ADD_DIALOG failed')
             return
         self._side_ready = True
+
+    def jump_outline_selection(self):
+        """Double-click on side list: jump to outline line (skip status hdr)."""
+        if not self._h_side_list or not self._outline_items:
+            return
+        idx = None
+        for name in ('LISTBOX_GET_ITEM_INDEX', 'LISTBOX_GET_INDEX', 'LISTBOX_GET_SEL'):
+            try:
+                const = getattr(__import__('cudatext', fromlist=[name]), name)
+                idx = listbox_proc(self._h_side_list, const)
+                break
+            except Exception:
+                continue
+        if idx is None:
+            return
+        try:
+            idx = int(idx)
+        except (TypeError, ValueError):
+            return
+        oi = idx - int(self._outline_hdr)
+        if oi < 0 or oi >= len(self._outline_items):
+            return
+        line = int(self._outline_items[oi]['line'])
+        from cudatext import ed
+        ed.set_caret(0, line)
+        msg_status(PLUGIN + ': outline → L' + str(line + 1))
 
     def _palette(self):
         font = _ui_color('ButtonFont', _rgb(0x90, 0x90, 0x90))
@@ -587,6 +618,24 @@ class Chrome:
                 'ARM     —',
             ]
         lines.append(_mid_ellipsis(host.find_exe() or '(not found — Config)', 42))
+        lines.append('— outline (dbl-click) —')
+        self._outline_hdr = len(lines)
+        self._outline_items = []
+        try:
+            from cudatext import ed as _ed
+            nlines = _ed.get_line_count()
+
+            def _gl(i):
+                t = _ed.get_text_line(i)
+                return t if t else ''
+
+            self._outline_items = sgoutline.collect_outline(_gl, nlines)
+        except Exception:
+            self._outline_items = []
+        for it in self._outline_items:
+            lines.append(sgoutline.format_caption(it, width=40))
+        if not self._outline_items:
+            lines.append('(no sections / functions)')
         listbox_proc(self._h_side_list, LISTBOX_DELETE_ALL)
         for line in lines:
             listbox_proc(self._h_side_list, LISTBOX_ADD, text=line)

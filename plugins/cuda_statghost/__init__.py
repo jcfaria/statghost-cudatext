@@ -3,8 +3,12 @@
 # Command class stays thin: new actions = method + install.inf.
 # Native chrome (VP-EB-1b) = chrome.py — main toolbar + side tab.
 
+import os
+
 from cudatext import APPSTATE_THEME_UI
+from cudatext import DMENU_LIST
 from cudatext import app_proc, PROC_SET_CLIP
+from cudatext import dlg_menu
 from cudatext import ed
 from cudatext import msg_status
 
@@ -13,9 +17,11 @@ try:
     from . import config as plugincfg
     from . import editor
     from . import host
+    from . import outline as sgoutline
     from . import paths as sgpaths
     from . import prefs
     from . import protocol
+    from . import ranges as sgranges
     from .statement import (
         collapse_wraps,
         enclosing_function,
@@ -27,15 +33,18 @@ except ImportError:
     import config as plugincfg
     import editor
     import host
+    import outline as sgoutline
     import paths as sgpaths
     import prefs
     import protocol
+    import ranges as sgranges
     from statement import (
         collapse_wraps,
         enclosing_function,
         extend_statement,
         join_lines,
     )
+
 PLUGIN = 'STATghost'
 
 
@@ -107,14 +116,26 @@ def _statement_at_caret():
     return start, end, text, 'statement'
 
 
-def _build_source_file_code():
-    """source(.paths[4], …) only — buffer already written to the shared slot."""
+def _build_source_slot_code(slot_1based):
+    """source(.paths[n], …) — buffer already written to the shared slot."""
     echo = 'TRUE' if prefs.get_source_echo() else 'FALSE'
     enc = prefs.encoding_for_r()
     return (
-        'source(.paths[4], echo = ' + echo
+        'source(.paths[' + str(int(slot_1based)) + '], echo = ' + echo
         + ', spaced = FALSE, encoding = ' + _r_quote(enc) + ')'
     )
+
+
+def _insert_at_caret(text):
+    carets = ed.get_carets()
+    if not carets:
+        return False
+    x, y, _x2, _y2 = carets[0]
+    if y < 0:
+        return False
+    ed.insert(x, y, text)
+    ed.set_caret(x + len(text), y)
+    return True
 
 
 class Command:
@@ -135,6 +156,44 @@ class Command:
         if _send_code(text, mode) and end is not None:
             editor.advance_caret_after(end)
 
+    def send_above(self):
+        """Send from start of file through caret line (RStudio Ctrl+Alt+B)."""
+        y = editor.caret_line_index()
+        if y is None:
+            msg_status(PLUGIN + ': nothing to send (above)')
+            return
+        n = editor.line_count()
+        text = sgranges.lines_from_start(editor.get_line, y, n)
+        if _send_code(text, 'above'):
+            editor.advance_caret_after(y)
+
+    def send_below(self):
+        """Send from caret line through EOF (RStudio Ctrl+Alt+E)."""
+        y = editor.caret_line_index()
+        if y is None:
+            msg_status(PLUGIN + ': nothing to send (below)')
+            return
+        n = editor.line_count()
+        text = sgranges.lines_to_end(editor.get_line, y, n)
+        _send_code(text, 'below')
+
+    def send_chunk(self):
+        """Send blank/#-separated sniper chunk containing the caret."""
+        y = editor.caret_line_index()
+        if y is None:
+            msg_status(PLUGIN + ': nothing to send (chunk)')
+            return
+        n = editor.line_count()
+        start, end = sgranges.sniper_chunk_bounds(
+            y, editor.get_line, n, editor.is_blank_or_hash_comment,
+        )
+        if start is None:
+            msg_status(PLUGIN + ': nothing to send (chunk)')
+            return
+        text = sgranges.join_range(editor.get_line, start, end)
+        if _send_code(text, 'chunk') and end is not None:
+            editor.advance_caret_after(end)
+
     def send_file(self):
         """Whole buffer → TEMP/STATghost/file.R → source(.paths[4], …).
 
@@ -149,8 +208,80 @@ class Command:
         except OSError as e:
             msg_status(PLUGIN + ': cannot write .paths[4] — ' + str(e))
             return
-        code = _build_source_file_code()
+        code = _build_source_slot_code(sgpaths.IDX_FILE)
         _send_code(code, 'source-file', apply_collapse=False)
+
+    def source_selection(self):
+        """Selection (or enclosing function) → .paths[5] → source(.paths[5])."""
+        sel = editor.selection_text()
+        if sel.strip() != '':
+            text = sel
+            mode = 'source-selection'
+        else:
+            _s, _e, text, mode0 = _statement_at_caret()
+            mode = 'source-' + mode0
+        if text is None or text.strip() == '':
+            msg_status(PLUGIN + ': nothing to source')
+            return
+        try:
+            sgpaths.write_slot(sgpaths.IDX_SELECTION, text)
+        except OSError as e:
+            msg_status(PLUGIN + ': cannot write .paths[5] — ' + str(e))
+            return
+        code = _build_source_slot_code(sgpaths.IDX_SELECTION)
+        _send_code(code, mode, apply_collapse=False)
+
+    def set_wd_here(self):
+        """Send setwd() to the directory of the current file (R classroom)."""
+        path = ed.get_filename() or ''
+        if not path:
+            msg_status(PLUGIN + ': save the file first (setwd)')
+            return
+        folder = os.path.dirname(os.path.realpath(path))
+        if not folder:
+            msg_status(PLUGIN + ': no directory for setwd')
+            return
+        _send_code('setwd(' + _r_quote(folder) + ')', 'setwd', apply_collapse=False)
+
+    def insert_assign(self):
+        """Insert ` <- ` (RStudio Alt+-)."""
+        if _insert_at_caret(' <- '):
+            msg_status(PLUGIN + ': inserted <-')
+        else:
+            msg_status(PLUGIN + ': no caret')
+
+    def insert_pipe(self):
+        """Insert native ` |> ` or magrittr ` %>% ` (Config / prefs)."""
+        tok = prefs.get_pipe_token()
+        if _insert_at_caret(' ' + tok + ' '):
+            msg_status(PLUGIN + ': inserted ' + tok)
+        else:
+            msg_status(PLUGIN + ': no caret')
+
+    def show_outline(self):
+        """Document outline — sections + functions (RStudio lite)."""
+        n = editor.line_count()
+        items = sgoutline.collect_outline(editor.get_line, n)
+        if not items:
+            msg_status(PLUGIN + ': outline empty')
+            return
+        caps = [sgoutline.format_caption(it) for it in items]
+        res = dlg_menu(DMENU_LIST, '\n'.join(caps))
+        if res is None:
+            return
+        try:
+            idx = int(res)
+        except (TypeError, ValueError):
+            return
+        if idx < 0 or idx >= len(items):
+            return
+        line = int(items[idx]['line'])
+        ed.set_caret(0, line)
+        msg_status(PLUGIN + ': outline → L' + str(line + 1))
+
+    def outline_jump(self):
+        """Side-tab double-click → jump (chrome keeps the index map)."""
+        chrome.get(self).jump_outline_selection()
 
     def clear_console(self):
         """Ask STATghost to wipe Console text (Ctrl+L). Works Idle or Armed."""
@@ -227,6 +358,10 @@ class Command:
             PLUGIN + ': docked bar retired — use the toolbar and the '
             'STATghost side tab'
         )
+
+    def _(self):
+        """Menu separator placeholder (install.inf)."""
+        pass
 
     def on_start2(self, ed_self):
         chrome.get(self).on_start()

@@ -1,6 +1,6 @@
 [info]
 title=STATghost
-desc=Send to STATghost; Source file; Arm/Idle; Start/Quit; Clear Console; toolbar + side tab
+desc=Send/Source to STATghost; outline; Arm/Idle; Start/Quit; Clear; toolbar + side tab
 type=cudatext-plugin
 subdir=cuda_statghost
 homepage=https://github.com/jcfaria/statghost-cudatext
@@ -13,11 +13,63 @@ events=on_start2,on_state
 section=commands
 caption=STATghost\Send selection / function / statement
 method=send_selection
+hotkey=Ctrl+Enter
+
+[item9]
+section=commands
+caption=STATghost\Send above (start→caret)
+method=send_above
+hotkey=Ctrl+Alt+B
+
+[item10]
+section=commands
+caption=STATghost\Send below (caret→EOF)
+method=send_below
+hotkey=Ctrl+Alt+E
+
+[item11]
+section=commands
+caption=STATghost\Send sniper chunk
+method=send_chunk
 
 [item8]
 section=commands
 caption=STATghost\Source file
 method=send_file
+hotkey=Ctrl+Shift+S
+
+[item12]
+section=commands
+caption=STATghost\Source selection / function
+method=source_selection
+
+[item13]
+section=commands
+caption=STATghost\setwd to file directory
+method=set_wd_here
+
+[item14]
+section=commands
+caption=STATghost\Insert <-
+method=insert_assign
+hotkey=Alt+-
+
+[item15]
+section=commands
+caption=STATghost\Insert pipe
+method=insert_pipe
+hotkey=Ctrl+Shift+M
+
+[item16]
+section=commands
+caption=STATghost\Outline…
+method=show_outline
+hotkey=Ctrl+Shift+O
+
+[item17]
+section=commands
+caption=STATghost\-
+method=_
 
 [item7]
 section=commands
@@ -44,6 +96,12 @@ section=commands
 caption=STATghost\Config
 method=config
 menu=o
+
+[item18]
+section=commands
+caption=STATghost\outline_jump
+method=outline_jump
+menu=0
 
 [sidebar1]
 hint=STATghost
