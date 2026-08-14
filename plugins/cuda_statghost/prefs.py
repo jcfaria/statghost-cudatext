@@ -19,6 +19,7 @@ _source_echo_cache = None
 _source_encoding_cache = None
 _pipe_cache = None
 _icons_fg_cache = None
+_chrome_show_cache = None
 
 
 def ini_path():
@@ -139,6 +140,33 @@ def set_icons_fg(mode):
         key = 'auto'
     ini_write(ini_path(), 'icons', 'fg', key)
     _icons_fg_cache = key
+
+
+def get_chrome_show():
+    """Which control-deck buttons are visible (toolbar + side, same set)."""
+    global _chrome_show_cache
+    if _chrome_show_cache is not None:
+        return tuple(_chrome_show_cache)
+    try:
+        from . import chrome_show as cs
+    except ImportError:
+        import chrome_show as cs
+    raw = ini_read(ini_path(), 'chrome', 'show', '')
+    keys = cs.parse_show(raw)
+    _chrome_show_cache = keys
+    return tuple(_chrome_show_cache)
+
+
+def set_chrome_show(keys):
+    """Persist visible action ids (cfg,arm,host,send,source,clear)."""
+    global _chrome_show_cache
+    try:
+        from . import chrome_show as cs
+    except ImportError:
+        import chrome_show as cs
+    keys = cs.parse_show(','.join(keys or ()))
+    ini_write(ini_path(), 'chrome', 'show', cs.format_show(keys))
+    _chrome_show_cache = keys
 
 
 def encoding_for_r(enc=None):

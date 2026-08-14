@@ -341,8 +341,9 @@ class Command:
         chrome.get(self).refresh()
 
     def config(self):
-        """Plugin settings — STATghost executable path / icons FG."""
+        """Plugin settings — exe / icons FG / visible chrome buttons."""
         if plugincfg.show_config():
+            chrome.get(self).rebuild_chrome()
             chrome.get(self).reload_icons()
         else:
             chrome.get(self).refresh()

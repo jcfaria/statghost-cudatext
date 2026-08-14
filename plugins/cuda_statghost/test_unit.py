@@ -15,6 +15,7 @@ import paths  # noqa: E402
 import protocol  # noqa: E402
 import statement  # noqa: E402
 import icons_fg  # noqa: E402
+import chrome_show  # noqa: E402
 import outline  # noqa: E402
 import ranges  # noqa: E402
 
@@ -158,6 +159,44 @@ z = 1
         s, e = statement.enclosing_function(1, _get(rows), len(rows))
         self.assertEqual(s, 0)
         self.assertEqual(e, 2)
+
+
+class TestChromeShow(unittest.TestCase):
+    def test_parse_default_and_order(self):
+        self.assertEqual(chrome_show.parse_show(''), chrome_show.DEFAULT_SHOW)
+        self.assertEqual(
+            chrome_show.parse_show('clear,cfg,send'),
+            ('cfg', 'send', 'clear'),
+        )
+
+    def test_filter_keeps_mid_sep(self):
+        tb = (
+            ('sep', '-', None, None),
+            ('cfg', 'c', 'config', 'a.png'),
+            ('arm', 'a', 'toggle_arm', 'b.png'),
+            ('sep_send', '-', None, None),
+            ('send', 's', 'send_selection', 'c.png'),
+            ('clear', 'x', 'clear_console', 'd.png'),
+        )
+        rows = chrome_show.filter_toolbar_rows(tb, ('cfg', 'send'))
+        names = [r[0] for r in rows]
+        self.assertEqual(names, ['sep', 'cfg', 'sep_send', 'send'])
+
+    def test_filter_empty(self):
+        tb = (
+            ('sep', '-', None, None),
+            ('cfg', 'c', 'config', 'a.png'),
+        )
+        self.assertEqual(chrome_show.filter_toolbar_rows(tb, ()), ())
+
+    def test_side_filter(self):
+        side = (
+            ('cfg', 'Config', 'config', 'a.png'),
+            ('send', 'Send', 'send_selection', 'b.png'),
+            ('clear', 'Clear', 'clear_console', 'c.png'),
+        )
+        out = chrome_show.filter_side_actions(side, ('send',))
+        self.assertEqual([r[0] for r in out], ['send'])
 
 
 class TestIconFg(unittest.TestCase):

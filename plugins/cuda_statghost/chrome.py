@@ -18,6 +18,7 @@ from cudatext import BTN_SET_IMAGEINDEX
 from cudatext import BTN_SET_IMAGELIST
 from cudatext import BTN_SET_KIND
 from cudatext import BTN_SET_TEXT
+from cudatext import BTN_SET_VISIBLE
 from cudatext import BTNKIND_ICON_ONLY
 from cudatext import BTNKIND_SEP_HORZ
 from cudatext import BTNKIND_TEXT_ICON_HORZ
@@ -62,11 +63,13 @@ from cudatext import timer_proc
 from cudatext import toolbar_proc
 
 try:
+    from . import chrome_show
     from . import host
     from . import icons as icontint
     from . import outline as sgoutline
     from . import prefs
 except ImportError:
+    import chrome_show
     import host
     import icons as icontint
     import outline as sgoutline
@@ -95,7 +98,7 @@ _TB = (
     ('source', 'Source file via .paths[4]', 'send_file', 'export.png'),
     ('clear', 'Clear STATghost Console', 'clear_console', 'clear.png'),
 )
-_TB_NAMES = tuple(row[0] for row in _TB)
+# _TB_NAMES was the full fixed set; live names come from _tb_names_now().
 
 _SIDE_CAP = {
     'cfg': 'Config',
@@ -110,6 +113,15 @@ _SIDE = tuple(
     for name, _hint, method, icon in _TB
     if method is not None
 )
+
+
+def _tb_rows_now():
+    return chrome_show.filter_toolbar_rows(_TB, prefs.get_chrome_show())
+
+
+def _tb_names_now():
+    return tuple(row[0] for row in _tb_rows_now())
+
 
 _LEGACY_CAPS = (
     'Send to STATghost',
@@ -279,7 +291,8 @@ class Chrome:
         if not h_bar:
             return
         self._load_icons(h_bar)
-        if self._plugin_names(h_bar) != _TB_NAMES:
+        wanted = _tb_names_now()
+        if self._plugin_names(h_bar) != wanted:
             self._drop_plugin_buttons(h_bar)
             self._create_toolbar(h_bar)
         else:
@@ -288,9 +301,17 @@ class Chrome:
         self._apply_imglist()
         toolbar_proc(h_bar, TOOLBAR_UPDATE)
 
+    def rebuild_chrome(self):
+        """Re-apply visible buttons after Config (toolbar recreate + side)."""
+        self.install_toolbar()
+        self._apply_side_visibility()
+        self.refresh()
+        if self._h_side_bar:
+            toolbar_proc(self._h_side_bar, TOOLBAR_UPDATE)
+
     def _create_toolbar(self, h_bar):
         self._btns = {}
-        for name, hint, method, icon in _TB:
+        for name, hint, method, icon in _tb_rows_now():
             h_btn = toolbar_proc(h_bar, TOOLBAR_ADD_ITEM)
             if h_btn is None:
                 cnt = toolbar_proc(h_bar, TOOLBAR_GET_COUNT)
@@ -555,6 +576,7 @@ class Chrome:
                 )
                 self._side_btns[name] = hb
             self._side_icon_idx = side_icons
+            self._apply_side_visibility()
             toolbar_proc(h_bar, TOOLBAR_SET_WRAP, index=True)
             toolbar_proc(h_bar, TOOLBAR_UPDATE)
         n = dlg_proc(h, DLG_CTL_ADD, 'listbox_ex')
@@ -619,6 +641,17 @@ class Chrome:
             'arm': _rgb(0xE6, 0xA8, 0x17),
             'stop': _rgb(0xC0, 0x5A, 0x5A),
         }
+
+    def _apply_side_visibility(self):
+        """Show/hide side-tab actions from the shared chrome.show list."""
+        if not self._side_btns:
+            return
+        show = set(prefs.get_chrome_show())
+        for name, hb in self._side_btns.items():
+            try:
+                button_proc(hb, BTN_SET_VISIBLE, name in show)
+            except Exception:
+                pass
 
     def _refresh_side(self, running, armed):
         if 'arm' in self._side_btns:

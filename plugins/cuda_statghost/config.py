@@ -16,18 +16,20 @@ from cudatext import dlg_file
 from cudatext import msg_status
 
 try:
+    from . import chrome_show
     from . import host
     from . import prefs
 except ImportError:
+    import chrome_show
     import host
     import prefs
 
 PLUGIN = 'STATghost'
 _C1 = chr(1)
 
-# Client size — collapse + Source echo/encoding + pipe + icons FG + exe.
+# Client size — send prefs + icons FG + chrome show + exe.
 _W = 420
-_H = 304
+_H = 408
 
 # Indices must match the control list below (top → bottom).
 _IDX_COLLAPSE = 0
@@ -38,13 +40,22 @@ _IDX_PIPE_LBL = 4
 _IDX_PIPE = 5
 _IDX_ICONS_LBL = 6
 _IDX_ICONS = 7
-_IDX_EXE_LBL = 8
-_IDX_EXE = 9
-_IDX_BROWSE = 10
-_IDX_HINT = 11
-_IDX_DET = 12
-_IDX_OK = 13
-_IDX_CANCEL = 14
+_IDX_SHOW_LBL = 8
+_IDX_ALL = 9
+_IDX_NONE = 10
+_IDX_CHK_CFG = 11
+_IDX_CHK_ARM = 12
+_IDX_CHK_HOST = 13
+_IDX_CHK_SEND = 14
+_IDX_CHK_SOURCE = 15
+_IDX_CHK_CLEAR = 16
+_IDX_EXE_LBL = 17
+_IDX_EXE = 18
+_IDX_BROWSE = 19
+_IDX_HINT = 20
+_IDX_DET = 21
+_IDX_OK = 22
+_IDX_CANCEL = 23
 
 _PIPE_ITEMS = ('|>  (native R 4.1+)', '%>%  (magrittr)')
 _ICONS_FG_ITEMS = (
@@ -54,6 +65,15 @@ _ICONS_FG_ITEMS = (
     'theme  (ButtonFont raw)',
 )
 _ICONS_FG_KEYS = ('auto', 'light', 'dark', 'theme')
+
+_SHOW_CHECKS = (
+    (_IDX_CHK_CFG, 'cfg', 'Config'),
+    (_IDX_CHK_ARM, 'arm', 'Arm/Idle'),
+    (_IDX_CHK_HOST, 'host', 'Start/Quit'),
+    (_IDX_CHK_SEND, 'send', 'Send'),
+    (_IDX_CHK_SOURCE, 'source', 'Source'),
+    (_IDX_CHK_CLEAR, 'clear', 'Clear'),
+)
 
 # Fallback if PROC_ENUM_ENCODINGS is empty (very old CudaText).
 _FALLBACK_ENCS = (
@@ -100,12 +120,10 @@ def _cuda_encodings():
     if isinstance(raw, (list, tuple)):
         out = [str(x).strip() for x in raw if str(x).strip()]
     elif isinstance(raw, str) and raw.strip():
-        # Some builds return a single string; split defensively.
         parts = raw.replace('\r', '\n').replace('\t', '\n').split('\n')
         out = [p.strip() for p in parts if p.strip()]
     if not out:
         out = list(_FALLBACK_ENCS)
-    # Prefer utf-8 near the top for classroom default.
     low = [e.lower() for e in out]
     for pref in ('utf-8', 'utf8', 'UTF-8'):
         if pref.lower() in low:
@@ -122,7 +140,6 @@ def _enc_index(encs, wanted):
     w = (wanted or '').strip().lower().replace('_', '-')
     if not w:
         w = 'utf-8'
-    # Normalize common aliases for matching.
     aliases = {
         'utf8': 'utf-8',
         'utf-8 bom': 'utf-8',
@@ -155,6 +172,19 @@ def _icons_fg_index():
         return 0
 
 
+def _show_dict_from_prefs():
+    on = set(prefs.get_chrome_show())
+    return {key: (key in on) for _idx, key, _cap in _SHOW_CHECKS}
+
+
+def _read_show_from_res(res, show_on):
+    out = dict(show_on)
+    for idx, key, _cap in _SHOW_CHECKS:
+        if idx in res:
+            out[key] = _as_bool(res.get(idx))
+    return out
+
+
 def show_config():
     path = prefs.get_exe() or host.find_exe(ignore_ini=True) or ''
     collapse = prefs.get_collapse()
@@ -164,6 +194,7 @@ def show_config():
     enc_idx = _enc_index(encs, encoding)
     pipe_idx = _pipe_index()
     icons_idx = _icons_fg_index()
+    show_on = _show_dict_from_prefs()
     detected = host.find_exe(ignore_ini=True) or ''
     det_cap = (
         ('Detected: ' + _short_path(detected)) if detected else ''
@@ -197,21 +228,46 @@ def show_config():
                  'items=' + '\t'.join(_ICONS_FG_ITEMS),
                  'val=' + str(icons_idx),
                  'pos=230,114,404,138'),
-            _ctl('type=label', 'cap=STATghost executable',
-                 'pos=8,146,280,162'),
-            _ctl('type=edit', 'name=exe', 'val=' + path,
-                 'pos=8,164,300,188'),
-            _ctl('type=button', 'cap=Browse…',
-                 'pos=308,164,404,188'),
             _ctl('type=label',
-                 'cap=Empty = auto-detect (sibling / PATH).',
-                 'pos=8,194,404,210'),
+                 'cap=Toolbar / side buttons (same set)',
+                 'pos=8,146,280,162'),
+            _ctl('type=button', 'cap=All',
+                 'pos=288,144,340,168'),
+            _ctl('type=button', 'cap=None',
+                 'pos=348,144,404,168'),
+            _ctl('type=check', 'cap=Config',
+                 'val=' + ('1' if show_on['cfg'] else '0'),
+                 'pos=8,172,140,196'),
+            _ctl('type=check', 'cap=Arm/Idle',
+                 'val=' + ('1' if show_on['arm'] else '0'),
+                 'pos=148,172,280,196'),
+            _ctl('type=check', 'cap=Start/Quit',
+                 'val=' + ('1' if show_on['host'] else '0'),
+                 'pos=288,172,404,196'),
+            _ctl('type=check', 'cap=Send',
+                 'val=' + ('1' if show_on['send'] else '0'),
+                 'pos=8,200,140,224'),
+            _ctl('type=check', 'cap=Source',
+                 'val=' + ('1' if show_on['source'] else '0'),
+                 'pos=148,200,280,224'),
+            _ctl('type=check', 'cap=Clear',
+                 'val=' + ('1' if show_on['clear'] else '0'),
+                 'pos=288,200,404,224'),
+            _ctl('type=label', 'cap=STATghost executable',
+                 'pos=8,236,280,252'),
+            _ctl('type=edit', 'name=exe', 'val=' + path,
+                 'pos=8,254,300,278'),
+            _ctl('type=button', 'cap=Browse…',
+                 'pos=308,254,404,278'),
+            _ctl('type=label',
+                 'cap=Empty = auto-detect. Hidden buttons stay in Plugins menu.',
+                 'pos=8,284,404,300'),
             _ctl('type=label', 'cap=' + det_cap,
-                 'pos=8,210,404,226'),
+                 'pos=8,300,404,316'),
             _ctl('type=button', 'cap=OK',
-                 'pos=220,264,308,288'),
+                 'pos=220,368,308,392'),
             _ctl('type=button', 'cap=Cancel', 'ex0=1',
-                 'pos=316,264,404,288'),
+                 'pos=316,368,404,392'),
         ])
         res = dlg_custom(PLUGIN + ' plugin', _W, _H, text, get_dict=True)
         if res is None:
@@ -240,7 +296,14 @@ def show_config():
             icons_idx = 0
         collapse = _as_bool(res.get(_IDX_COLLAPSE))
         src_echo = _as_bool(res.get(_IDX_SRC_ECHO))
+        show_on = _read_show_from_res(res, show_on)
         clicked = res.get('clicked')
+        if clicked == _IDX_ALL:
+            show_on = {key: True for _i, key, _c in _SHOW_CHECKS}
+            continue
+        if clicked == _IDX_NONE:
+            show_on = {key: False for _i, key, _c in _SHOW_CHECKS}
+            continue
         if clicked == _IDX_BROWSE:
             init_dir = os.path.dirname(path) if path else ''
             init_name = os.path.basename(path) if path else host.exe_name()
@@ -256,22 +319,26 @@ def show_config():
         if path and (not os.path.isfile(path)):
             msg_status(PLUGIN + ': file not found — ' + path)
             continue
+        # Empty selection → classroom default (all on).
+        chosen = [key for _i, key, _c in _SHOW_CHECKS if show_on.get(key)]
+        if not chosen:
+            chosen = list(chrome_show.DEFAULT_SHOW)
+            msg_status(PLUGIN + ': no buttons selected — restored all')
         prefs.set_exe(path)
         prefs.set_collapse(collapse)
         prefs.set_source_echo(src_echo)
         prefs.set_source_encoding(encoding)
         prefs.set_pipe_token('magrittr' if pipe_idx == 1 else 'native')
         prefs.set_icons_fg(_ICONS_FG_KEYS[icons_idx])
+        prefs.set_chrome_show(chosen)
         got = prefs.get_collapse()
         msg_status(
             PLUGIN + ': settings saved — collapse '
             + ('ON' if got else 'OFF')
-            + ', source echo '
-            + ('TRUE' if prefs.get_source_echo() else 'FALSE')
-            + ', pipe '
-            + prefs.get_pipe_token()
             + ', icons FG '
             + prefs.get_icons_fg()
+            + ', buttons '
+            + ','.join(prefs.get_chrome_show())
             + ', encoding '
             + prefs.get_source_encoding()
         )

@@ -66,10 +66,15 @@ Config (Options → Settings-plugins → STATghost → Config):
   [edit] pipe=native|magrittr — Insert pipe (Ctrl+Shift+M): `|>` or `%>%`
   [icons] fg=auto|light|dark|theme — toolbar + side-tab glyph FG
     (default auto: high contrast vs ButtonBg/TabBg; theme = raw ButtonFont)
+  [chrome] show=cfg,arm,host,send,source,clear — which control-deck
+    buttons appear on the main toolbar AND the side tab (same set /
+    same order). Config checkboxes + All/None. Empty → all. Hidden
+    buttons remain in Plugins → STATghost / hotkeys.
 
 Chrome (VP-EB-1b, native):
   Main toolbar: Config | Arm/Idle | Start/Quit | Send | Source | Clear
   GOLDEN RULE: side-tab order == toolbar order (_SIDE from _TB).
+  Visibility is one shared list (chrome.show) — never diverge bars.
   Send = selection, or the complete statement at caret.
   Source = whole saved file via `.path` + source(...).
   Arm/Idle and Start/Quit swap icons (on|off).
