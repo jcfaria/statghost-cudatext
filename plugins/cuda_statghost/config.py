@@ -29,7 +29,7 @@ _C1 = chr(1)
 
 # Roomier classroom Config (group box + breathing room).
 _W = 500
-_H = 660
+_H = 680
 
 # Indices must match the control list below (top → bottom).
 _IDX_COLLAPSE = 0
