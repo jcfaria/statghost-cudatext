@@ -4,8 +4,11 @@
 
 from __future__ import annotations
 
+import ast
 import os
+import subprocess
 import sys
+import tempfile
 import unittest
 
 # Allow `python3 test_unit.py` from this folder or repo root.
@@ -300,6 +303,272 @@ class TestRanges(unittest.TestCase):
         self.assertEqual((s, e), (0, 1))
         s2, e2 = ranges.sniper_chunk_bounds(3, _get(rows), len(rows), is_cut)
         self.assertEqual((s2, e2), (3, 3))
+
+
+def _span(src, y):
+    rows = _lines(src)
+    s, e = statement.extend_statement(y, _get(rows), len(rows))
+    return s, e, statement.dedent_block(statement.join_lines(_get(rows), s, e))
+
+
+def _send_at(src, y):
+    rows = _lines(src)
+    n = len(rows)
+    get = _get(rows)
+    fs, fe = statement.enclosing_function(y, get, n)
+    if fs is not None and fe is not None:
+        text = statement.join_lines(get, fs, fe)
+        return fs, fe, statement.dedent_block(text), 'function'
+    s, e = statement.extend_statement(y, get, n)
+    text = statement.join_lines(get, s, e)
+    return s, e, statement.dedent_block(text), 'statement'
+
+
+class TestExtendStatement(unittest.TestCase):
+    def test_r_wrapped_call(self):
+        src = 'rnorm(n = 1e2,\n      mean = 10,\n      sd = 2)\n'
+        s, e, text = _span(src, 0)
+        self.assertEqual((s, e), (0, 2))
+        self.assertIn('sd = 2)', text)
+
+    def test_r_unbraced_if(self):
+        src = (
+            'if (!requireNamespace("magrittr", quietly = TRUE))\n'
+            '  install.packages("magrittr")\n'
+            'library(magrittr)\n'
+        )
+        s, e, text = _span(src, 0)
+        self.assertEqual(s, 0)
+        self.assertEqual(e, 1)
+        self.assertIn('install.packages', text)
+        self.assertNotIn('library', text)
+
+    def test_r_if_else(self):
+        src = 'if (x > 0)\n  1\nelse\n  2\nnext <- 3\n'
+        s, e, _text = _span(src, 0)
+        self.assertEqual((s, e), (0, 3))
+
+    def test_triple_quoted_string(self):
+        src = 'text = """\nhello\n"""\npat = 1\n'
+        s, e, text = _span(src, 0)
+        self.assertEqual((s, e), (0, 2))
+        self.assertIn('hello', text)
+        self.assertTrue(text.rstrip().endswith('"""'))
+
+    def test_caret_inside_triple_quoted_string(self):
+        src = 'text = """\nhello\n"""\npat = 1\n'
+        s, e, text = _span(src, 1)
+        self.assertEqual((s, e), (0, 2))
+        ast.parse(text)
+        s2, e2, text2 = _span(src, 2)
+        self.assertEqual((s2, e2), (0, 2))
+        ast.parse(text2)
+
+
+class TestDedent(unittest.TestCase):
+    def test_method_becomes_module_def(self):
+        src = '    def dist2(self):\n        return self.x\n'
+        out = statement.dedent_block(src)
+        ast.parse(out)
+        self.assertTrue(out.startswith('def dist2'))
+
+
+class TestPythonCompound(unittest.TestCase):
+    def test_try_except_else_from_header(self):
+        src = (
+            'try:\n'
+            '    import numpy as np\n'
+            'except ImportError:\n'
+            '    print("SKIP")\n'
+            'else:\n'
+            '    np.random.seed(17)\n'
+            'done = 1\n'
+        )
+        s, e, text = _span(src, 0)
+        self.assertEqual((s, e), (0, 5))
+        ast.parse(text)
+        self.assertNotIn('done', text)
+
+    def test_except_walks_back_to_try(self):
+        src = (
+            'try:\n'
+            '    import numpy as np\n'
+            'except ImportError:\n'
+            '    print("SKIP")\n'
+        )
+        s, e, text = _span(src, 2)
+        self.assertEqual(s, 0)
+        ast.parse(text)
+
+    def test_inner_line_stays_one_statement(self):
+        src = (
+            'try:\n'
+            '    import numpy as np\n'
+            'except ImportError:\n'
+            '    print("SKIP")\n'
+        )
+        _s, _e, text, mode = _send_at(src, 1)
+        self.assertEqual(mode, 'statement')
+        self.assertEqual(text.strip(), 'import numpy as np')
+        ast.parse(text)
+
+    def test_inner_print_does_not_steal_else(self):
+        src = (
+            'if cond:\n'
+            '    print("SKIP")\n'
+            'else:\n'
+            '    x = 1\n'
+        )
+        _s, _e, text, mode = _send_at(src, 1)
+        self.assertEqual(mode, 'statement')
+        self.assertEqual(text.strip(), 'print("SKIP")')
+        ast.parse(text)
+
+    def test_decorator_plus_class(self):
+        src = (
+            '@dataclass\n'
+            'class RunningMean:\n'
+            '    n: int = 0\n'
+            '    def update(self, x):\n'
+            '        return x\n'
+            'rm = RunningMean()\n'
+        )
+        s, e, text, mode = _send_at(src, 0)
+        self.assertEqual(mode, 'function')
+        self.assertEqual(s, 0)
+        self.assertIn('@dataclass', text)
+        self.assertIn('class RunningMean', text)
+        self.assertNotIn('rm =', text)
+        ast.parse(text)
+
+    def test_for_try_from_for_header(self):
+        src = (
+            'total = 0\n'
+            'for i in range(5):\n'
+            '    try:\n'
+            '        if i == 3:\n'
+            '            raise ValueError("boom")\n'
+            '        total += i\n'
+            '    except ValueError as e:\n'
+            '        print(e)\n'
+            'print(total)\n'
+        )
+        s, e, text = _span(src, 1)
+        self.assertEqual(s, 1)
+        self.assertIn('except ValueError', text)
+        ast.parse(text)
+
+
+def _sample_root():
+    env = os.environ.get('STATGHOST_SAMPLE')
+    if env and os.path.isdir(env):
+        return env
+    here = os.path.dirname(os.path.abspath(__file__))
+    cand = os.path.abspath(os.path.join(here, '..', '..', '..', 'statghost', 'sample'))
+    if os.path.isdir(os.path.join(cand, 'R')):
+        return cand
+    return None
+
+
+def _is_cut(line):
+    s = (line or '').strip()
+    return s == '' or s.startswith('#')
+
+
+def _collect_extracts(path):
+    with open(path, encoding='utf-8') as f:
+        rows = _lines(f.read())
+    out = []
+    seen = set()
+    for y, line in enumerate(rows):
+        if _is_cut(line):
+            continue
+        s, e, text, mode = _send_at('\n'.join(rows), y)
+        key = (s, e, mode)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append((os.path.basename(path), y + 1, mode, text))
+    return out
+
+
+def _r_parse_batch(items):
+    if not items:
+        return []
+    tmp = tempfile.mkdtemp(prefix='sgtf_')
+    files = []
+    for i, (_n, _y, _m, text) in enumerate(items):
+        p = os.path.join(tmp, '%04d.R' % i)
+        with open(p, 'w', encoding='utf-8') as f:
+            f.write(text or '')
+        files.append(p)
+    checker = os.path.join(tmp, 'check.R')
+    with open(checker, 'w', encoding='utf-8') as f:
+        f.write(
+            'files <- commandArgs(TRUE)\n'
+            'for (i in seq_along(files)) {\n'
+            '  e <- tryCatch(parse(file = files[[i]], keep.source = TRUE),\n'
+            '                error = function(err) err)\n'
+            '  if (inherits(e, "error"))\n'
+            '    cat(sprintf("FAIL\\t%d\\t%s\\n", i - 1L, conditionMessage(e)))\n'
+            '}\n'
+        )
+    p = subprocess.run(
+        ['Rscript', '--vanilla', checker] + files,
+        capture_output=True, text=True, timeout=60,
+    )
+    fails = []
+    for line in (p.stdout or '').splitlines():
+        if not line.startswith('FAIL\t'):
+            continue
+        parts = line.split('\t', 2)
+        if len(parts) >= 3:
+            fails.append((items[int(parts[1])], parts[2]))
+    return fails
+
+
+class TestSampleExtracts(unittest.TestCase):
+    """Automatic classroom gate: every unique Send extract must parse."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.root = _sample_root()
+
+    def test_r_samples_parse(self):
+        if not self.root:
+            self.skipTest('STATghost sample/ not found')
+        items = []
+        rdir = os.path.join(self.root, 'R')
+        for name in sorted(os.listdir(rdir)):
+            if name.endswith('.R'):
+                items.extend(_collect_extracts(os.path.join(rdir, name)))
+        self.assertGreater(len(items), 50)
+        fails = _r_parse_batch(items)
+        self.assertEqual(
+            fails, [],
+            '\n'.join(
+                '%s L%s %s: %s' % (n, y, m, err)
+                for (n, y, m, _t), err in fails
+            ),
+        )
+
+    def test_python_samples_parse(self):
+        if not self.root:
+            self.skipTest('STATghost sample/ not found')
+        fails = []
+        pdir = os.path.join(self.root, 'Python')
+        n = 0
+        for name in sorted(os.listdir(pdir)):
+            if not name.endswith('.py') or name == 'run_tests.py':
+                continue
+            for fname, y, mode, text in _collect_extracts(os.path.join(pdir, name)):
+                n += 1
+                try:
+                    ast.parse(text or '')
+                except SyntaxError as e:
+                    fails.append('%s L%s %s: %s' % (fname, y, mode, e.msg))
+        self.assertGreater(n, 50)
+        self.assertEqual(fails, [], '\n'.join(fails))
 
 
 if __name__ == '__main__':

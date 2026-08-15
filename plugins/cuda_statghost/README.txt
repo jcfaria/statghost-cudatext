@@ -27,8 +27,12 @@ TF (no host):
 
 Send (no selection):
   1. If the caret is inside `name <- function(...) { … }` → whole function
-     (innermost when nested). RStudio-style.
+     (innermost when nested). RStudio-style. Python: def/class + adjacent
+     @decorators (innermost method; send dedents so the REPL accepts it).
   2. Else → complete statement at caret, then advance.
+     Python: try/except/else/finally, if/elif/else, for/with, and """
+     strings grow to a parseable unit when the caret is on the header
+     (or except/else). Inner body lines stay one statement (dedented).
 
 Also (Plugins → STATghost / hotkeys on first install):
   Ctrl+Enter     Send selection / function / statement

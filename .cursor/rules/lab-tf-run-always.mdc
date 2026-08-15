@@ -1,0 +1,15 @@
+---
+description: Never ask for RUN on tests/builds — standing GO 2026-08-15
+alwaysApply: true
+---
+
+# Lab — RUN always authorized (tests)
+
+Owner 2026-08-15: *“para de me pedir autorização para RUN. estou
+autorizando sempre.”*
+
+Do **not** ask the human to approve `python3 test_unit.py`, probes,
+`Rscript`, lazbuild, or ordinary git. Just run.
+
+Still stop: force-push, hard reset, `clean -fdx`, wipe of shared prefs,
+owner *“pára de testar”*.

@@ -24,6 +24,7 @@ try:
     from . import ranges as sgranges
     from .statement import (
         collapse_wraps,
+        dedent_block,
         enclosing_function,
         extend_statement,
         join_lines,
@@ -40,6 +41,7 @@ except ImportError:
     import ranges as sgranges
     from statement import (
         collapse_wraps,
+        dedent_block,
         enclosing_function,
         extend_statement,
         join_lines,
@@ -75,6 +77,7 @@ def _send_code(text, mode, apply_collapse=True):
     if text is None or text.strip() == '':
         msg_status(PLUGIN + ': nothing to send (' + mode + ')')
         return False
+    text = dedent_block(text)
     n_in = _line_count(text)
     collapse = prefs.get_collapse() if apply_collapse else False
     if collapse:
@@ -238,6 +241,7 @@ class Command:
         if text is None or text.strip() == '':
             msg_status(PLUGIN + ': nothing to source')
             return
+        text = dedent_block(text)
         try:
             sgpaths.write_slot(sgpaths.IDX_SELECTION, text)
         except OSError as e:

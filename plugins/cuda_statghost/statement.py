@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import re
+import textwrap
 
 _END_OP = re.compile(
     r'(\(|,|\+|!|\$|\^|&|\*|-|=|:|~|\||/|\?|<|>|%[^%]*%)$'
@@ -43,6 +44,11 @@ def ends_in_operator(text):
         return False
     s = clean_line(text)
     if s.strip() == '':
+        return False
+    # Python suite headers (`try:`, `if x:`) are not R wrap operators.
+    # Treating `:` as a joiner pulled inner body lines into the header
+    # (and then _grow_py_compound swallowed the whole try/except).
+    if _py_suite_kind(text) in ('owner', 'cont'):
         return False
     return _END_OP.search(s) is not None
 
@@ -300,6 +306,13 @@ def _grow_r_control(start, end, get_line, line_count, depth=0):
             break
         head = clean_line(get_line(nxt) or '').strip()
         if re.match(r'^else\b', head, re.I):
+            # Only an R if/for/while/repeat span owns a following else.
+            # A Python body line sitting above `else:` must stay one statement.
+            head0 = clean_line(get_line(start) or '').strip()
+            if not re.match(
+                r'^(?:else\s+)?(?:if|for|while|repeat)\b', head0, re.I
+            ):
+                break
             e0, e1 = _extend_brackets(nxt, get_line, line_count)
             e0, e1 = _grow_r_control(e0, e1, get_line, line_count, depth + 1)
             if e1 > end:
@@ -365,7 +378,11 @@ def _extend_brackets(line, get_line, line_count):
                     if nch != '\\':
                         quote = ''
         if is_eol:
-            if not unmatched[1 if looking_forward else 0]:
+            if quote != '':
+                # Multi-line string / """ — do not end the statement at EOL.
+                if is_eof:
+                    abort = True
+            elif not unmatched[1 if looking_forward else 0]:
                 done[1 if looking_forward else 0] = True
                 looking_forward = not looking_forward
             elif is_eof:
@@ -376,14 +393,47 @@ def _extend_brackets(line, get_line, line_count):
     return poss[0].line, poss[1].line
 
 
+def _opener_if_inside_string(line, get_line):
+    """If `line` sits inside a multi-line string, return the opener line.
+
+    Sniper cut (blank / hash) bounds the scan. Caret on a line inside
+    a triple-quoted assignment sends the whole assignment.
+    """
+    start = line
+    while start > 0:
+        s = (get_line(start - 1) or '').strip()
+        if s == '' or s.startswith('#'):
+            break
+        start -= 1
+    quote = ''
+    opener = None
+    for i in range(start, line):
+        prev = ''
+        for c in (get_line(i) or ''):
+            if quote:
+                if c == quote and prev != '\\':
+                    quote = ''
+                    opener = None
+            elif c in '"\'`':
+                quote = c
+                opener = i
+            prev = c
+    if quote and opener is not None:
+        return opener
+    return line
+
+
 def extend_statement(line, get_line, line_count):
     """Inclusive 0-based (start, end) of the complete expression at `line`.
 
     Brackets + trailing operators (vscode-R), then unbraced R `if`/`else`
-    body (RStudio Ctrl+Enter). On abort (unmatched), returns (line, line).
+    body (RStudio Ctrl+Enter), then Python suite / decorator growth.
+    On abort (unmatched), returns (line, line).
     """
+    line = _opener_if_inside_string(line, get_line)
     start, end = _extend_brackets(line, get_line, line_count)
-    return _grow_r_control(start, end, get_line, line_count)
+    start, end = _grow_r_control(start, end, get_line, line_count)
+    return _grow_py_compound(start, end, get_line, line_count)
 
 
 # R: name <- function(  /  name = function(  /  `odd name` <- function(
@@ -397,6 +447,148 @@ _RE_PY_DEF = re.compile(
 _RE_JL_FUN = re.compile(
     r'^\s*(?:function|macro)\s+[A-Za-z_!][\w!]*'
 )
+_RE_PY_OWNER = re.compile(
+    r'^(?:async\s+)?(?:def|class|if|for|while|try|with|match)\b'
+)
+_RE_PY_CONTINUER = re.compile(
+    r'^(?:elif|else|except|finally|case)\b'
+)
+
+
+def _py_suite_kind(line):
+    """'owner' | 'cont' | 'deco' | None — Python compound / decorator line."""
+    s = clean_line(line).strip()
+    if not s:
+        return None
+    if s.startswith('@') and not s.startswith('@"') and not s.startswith("@'"):
+        return 'deco'
+    if not s.endswith(':'):
+        return None
+    if _RE_PY_OWNER.match(s):
+        return 'owner'
+    if _RE_PY_CONTINUER.match(s):
+        return 'cont'
+    return None
+
+
+def _include_decorators(start, get_line):
+    """Walk up adjacent @decorator lines (no blank between deco and def)."""
+    i = start
+    while i > 0:
+        prev = get_line(i - 1)
+        if _py_suite_kind(prev) == 'deco':
+            i -= 1
+            continue
+        break
+    return i
+
+
+def _py_find_owner(line, get_line):
+    """From elif/else/except/finally, walk up to if/try/for/while/with.
+
+    Blank line is a sniper cut (STATghost Python REPL closes on blank).
+    """
+    my_ind = _indent_width(get_line(line))
+    for j in range(line - 1, -1, -1):
+        raw = get_line(j)
+        s = (raw or '').strip()
+        if s == '':
+            return None
+        if s.startswith('#'):
+            continue
+        ind = _indent_width(raw)
+        if ind > my_ind:
+            continue
+        if ind < my_ind:
+            return None
+        kind = _py_suite_kind(raw)
+        if kind == 'owner':
+            return j
+        if kind == 'cont':
+            continue
+        return None
+    return None
+
+
+def _py_extend_suite(start, get_line, line_count):
+    """From first decorator or header, include body + same-indent continuers."""
+    i = start
+    while i < line_count and _py_suite_kind(get_line(i)) == 'deco':
+        i += 1
+    if i >= line_count:
+        return start
+    kind = _py_suite_kind(get_line(i))
+    if kind not in ('owner', 'cont'):
+        return (i - 1) if i > start else start
+    head_ind = _indent_width(get_line(i))
+    end = i
+    j = i + 1
+    while j < line_count:
+        raw = get_line(j) or ''
+        s = raw.strip()
+        if s == '':
+            return end
+        if s.startswith('#'):
+            j += 1
+            continue
+        ind = _indent_width(raw)
+        nxt = _py_suite_kind(raw)
+        if ind > head_ind:
+            end = j
+            j += 1
+            continue
+        if ind == head_ind and nxt == 'cont':
+            end = j
+            j += 1
+            continue
+        break
+    return end
+
+
+def _grow_py_compound(start, end, get_line, line_count):
+    """Complete Python try/if/for/with/def/class and @decorator groups.
+
+    Only grows when the *start* line is a header, continuer, or decorator.
+    Inner body lines stay a single statement (then dedent_block on send).
+    """
+    kind = _py_suite_kind(get_line(start))
+    if kind is None:
+        return start, end
+    i = start
+    if kind == 'cont':
+        owner = _py_find_owner(i, get_line)
+        if owner is not None:
+            i = owner
+    i = _include_decorators(i, get_line)
+    new_end = _py_extend_suite(i, get_line, line_count)
+    if new_end < end:
+        new_end = end
+    return i, new_end
+
+
+def dedent_block(text):
+    """Strip common leading indent so a method / inner line is valid Python.
+
+    R ignores indent; the Python REPL does not. Always safe for R.
+    """
+    if text is None:
+        return ''
+    raw = text.replace('\r\n', '\n').replace('\r', '\n')
+    if raw.strip() == '':
+        return raw
+    out = textwrap.dedent(raw)
+    lines = out.split('\n')
+    indents = []
+    for ln in lines:
+        if ln.strip() == '':
+            continue
+        indents.append(len(ln) - len(ln.lstrip(' \t')))
+    if not indents:
+        return out
+    m = min(indents)
+    if m <= 0:
+        return out
+    return '\n'.join((ln[m:] if ln.strip() else ln) for ln in lines)
 
 
 def _indent_width(line):
@@ -448,7 +640,18 @@ def enclosing_function(line, get_line, line_count):
     # --- Python: def/class at indent <= caret's code indent
     caret_raw = line_at(line)
     caret_ind = _indent_width(caret_raw)
-    if _is_blank_or_comment(caret_raw):
+    search_from = line
+    if _py_suite_kind(caret_raw) == 'deco':
+        j = line + 1
+        while j < line_count and (
+            _py_suite_kind(line_at(j)) == 'deco'
+            or _is_blank_or_comment(line_at(j))
+        ):
+            j += 1
+        if j < line_count and _RE_PY_DEF.match(line_at(j)):
+            search_from = j
+            caret_ind = _indent_width(line_at(j))
+    if _is_blank_or_comment(caret_raw) and _py_suite_kind(caret_raw) != 'deco':
         # Use nearest code line below (or above) for indent reference.
         for j in range(line + 1, line_count):
             if not _is_blank_or_comment(line_at(j)):
@@ -459,7 +662,7 @@ def enclosing_function(line, get_line, line_count):
                 if not _is_blank_or_comment(line_at(j)):
                     caret_ind = _indent_width(line_at(j))
                     break
-    for i in range(line, -1, -1):
+    for i in range(search_from, -1, -1):
         raw = line_at(i)
         m = _RE_PY_DEF.match(raw)
         if not m:
@@ -479,8 +682,9 @@ def enclosing_function(line, get_line, line_count):
                 end = j
                 continue
             break
-        if i <= line <= end:
-            return i, end
+        deco = _include_decorators(i, line_at)
+        if deco <= line <= end:
+            return deco, end
     # --- Julia: function/macro … end (bracket-free; match end at col)
     for i in range(line, -1, -1):
         raw = line_at(i)
