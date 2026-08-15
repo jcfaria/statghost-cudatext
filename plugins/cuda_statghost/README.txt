@@ -22,11 +22,14 @@ Layout (add a module, not a god-file):
   test_unit.py    automated checks (no CudaText host)
   png/            toolbar / sidebar glyphs (16/24/32; no Explorer set)
 
-TF (no host):
-  python3 test_unit.py
-TF (live STATghost — clipboard contract, no GUI clicks):
-  python3 test_functional.py
-  Requires the interactive STATghost up (R Armed). Does not Quit.
+TF (automatic, no human hands):
+  bash plugins/run_tf.sh
+  1) python3 test_unit.py              — headless
+  2) python3 test_functional.py        — clipboard → running STATghost
+  3) python3 test_production.py        — running CudaText plugin → STATghost
+     R samples + Python (print / def / try-for). Reads keys.json
+     (this lab: Ctrl+Space). Bootstraps /tmp/sg_prod_venv (python-xlib).
+     Logs: /tmp/sg_tf/last.log
 
 Send (no selection):
   1. If the caret is inside `name <- function(...) { … }` → whole function
