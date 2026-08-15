@@ -61,8 +61,21 @@ statghost-cudatext/plugins/cuda_statghost
 ```
 
 STATghost source keeps **only** `lexer/README.txt` (no LCF duplicates;
-no Pascal for EB-1 v1).
+no Pascal for EB-1 v1). Motto: Keep this project as simple and effective as possible.
 
-## Licence
+---
 
-MPL-2.0. Motto: Keep this project as simple and effective as possible.
+## Author / Maintainer
+
+Started and maintained by:
+
+**Faria, J. C.**  
+Universidade Estadual de Santa Cruz — UESC  
+Departamento de Ciências Exatas — DCEX  
+Ilhéus — Bahia — Brazil
+
+---
+
+## License
+
+**Mozilla Public License 2.0 (MPL-2.0)** — see [`LICENSE`](LICENSE).
