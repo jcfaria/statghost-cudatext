@@ -24,6 +24,9 @@ Layout (add a module, not a god-file):
 
 TF (no host):
   python3 test_unit.py
+TF (live STATghost — clipboard contract, no GUI clicks):
+  python3 test_functional.py
+  Requires the interactive STATghost up (R Armed). Does not Quit.
 
 Send (no selection):
   1. If the caret is inside `name <- function(...) { … }` → whole function
