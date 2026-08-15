@@ -77,6 +77,16 @@ class TestCollapseWraps(unittest.TestCase):
         out = statement.collapse_wraps(src)
         self.assertEqual(out, 'plot( x, y )')
 
+    def test_deriv_wrap_joins_when_collapse_on(self):
+        # Collapse ON: one Console line. Collapse OFF is identity in _send_code
+        # (SG reprints wraps with `>`/`+`).
+        src = 'deriv(fl,\n      c("a", "b"))'
+        self.assertIn('\n', src)
+        out = statement.collapse_wraps(src)
+        self.assertEqual(out.count('\n'), 0)
+        self.assertIn('deriv(fl,', out)
+        self.assertIn('c("a", "b")', out)
+
 
 class TestProtocol(unittest.TestCase):
     def test_eval_roundtrip(self):

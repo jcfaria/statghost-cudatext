@@ -69,8 +69,8 @@ def _send_code(text, mode, apply_collapse=True):
     """Student chunk — STATghost evals only when Armed.
 
     Collapse is plugin-side shaping of the EVAL body. STATghost then
-    chooses 1 line → direct `>` echo vs 2+ → `source(echo=TRUE)` — so
-    the option only “shows” when collapse actually yields one line.
+    echoes 1 line as `>` and 2+ as original wraps (`>` / `+`) — so
+    collapse OFF is what the student typed; collapse ON is one line.
     """
     if text is None or text.strip() == '':
         msg_status(PLUGIN + ': nothing to send (' + mode + ')')
