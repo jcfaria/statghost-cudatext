@@ -54,8 +54,9 @@ Config (Options → Settings-plugins → STATghost → Config):
   [host] exe=  — STATghost binary (empty = auto-detect)
   [send] collapse=1 (default): join editor wraps into one EVAL line
     (comma / `(` / `[`). `{` blocks keep newlines between statements.
-    STATghost then uses the 1-line `>` path vs multi-line
-    `source(echo=TRUE)`. Multi-line strings and unbraced `if` stay as-is.
+    STATghost then echoes 1 line as `>` and 2+ as original wraps
+    (`>` / `+`); `source(echo=TRUE)` is the Source-file button.
+    Multi-line strings and unbraced `if` stay as-is.
   [send] source_echo=1 / source_encoding=utf-8 — Source file button
     writes the buffer to the shared TEMP/STATghost/file.R slot
     (STATghostcom `.paths[4]`, TinnRcom pattern), then sends only:
@@ -92,8 +93,8 @@ Chrome (VP-EB-1b, native):
 Collapse vs STATghost (who does what):
   Plugin shapes the clipboard EVAL body (join wraps or not).
   STATghost EvalCode: 1 non-empty line → direct prompt echo;
-  2+ lines → source(echo=TRUE, spaced=FALSE). Both sides matter for
-  what the student sees on the Console.
+  2+ lines → original wrap echo (`>`/`+`) then eval (not deparse).
+  Both sides matter for what the student sees on the Console.
 
 Atalhos: none by default — bind in CudaText Command Palette (F9).
 Restart CudaText after Python changes.

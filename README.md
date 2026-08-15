@@ -1,7 +1,11 @@
 # statghost-cudatext
 
-Private companion to **[STATghost](https://github.com/jcfaria/statghost)** for the
-**CudaText** ecosystem (lexers + thin peer plugins).
+Public companion to **[STATghost](https://github.com/jcfaria/statghost)** for the
+**CudaText** ecosystem (lexers + thin peer plugin).
+
+**Plugin:** copy [`plugins/cuda_statghost`](plugins/cuda_statghost) into
+CudaText `py/` (or `bash plugins/install_lab.sh` in a lab clone) and restart.
+Repo: https://github.com/jcfaria/statghost-cudatext
 
 STATghost remains the sniper matchbox. This repo owns **peer** CudaText
 artefacts — not a REPL+Explorer bundle (D29).
