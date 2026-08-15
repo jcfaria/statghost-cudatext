@@ -51,6 +51,32 @@ class TestCollapseWraps(unittest.TestCase):
         out = statement.collapse_wraps(src)
         self.assertEqual(out, src)
 
+    def test_brace_block_keeps_statements(self):
+        src = '''with(BOD, {
+  plot(demand ~ Time,
+       xlim = c(0, 8),
+       ylim = c(0, 20),
+       main = "sample 12 — BOD nls")
+  points(predict(m_1) ~ Time,
+         col = "red",
+         pch = 19)
+  lines(spline(predict(m_1) ~ Time, n = 200),
+        col = "red",
+        lwd = 2)
+})'''
+        out = statement.collapse_wraps(src)
+        self.assertIn('\n', out)
+        self.assertNotIn(') points', out)
+        self.assertNotIn(') lines', out)
+        self.assertIn('plot(demand ~ Time, xlim = c(0, 8)', out)
+        self.assertIn('points(predict(m_1) ~ Time, col = "red", pch = 19)', out)
+        self.assertTrue(out.rstrip().endswith('})'))
+
+    def test_lone_close_paren_joins(self):
+        src = 'plot(\n  x,\n  y\n)'
+        out = statement.collapse_wraps(src)
+        self.assertEqual(out, 'plot( x, y )')
+
 
 class TestProtocol(unittest.TestCase):
     def test_eval_roundtrip(self):

@@ -69,8 +69,13 @@ def _has_code_comment(text):
     return len(cleaned) < len(raw.rstrip())
 
 
-def _bracket_depth(text):
-    """Net ([{ depth, ignoring quotes (same quote rules as clean_line)."""
+def _call_depth(text):
+    """Net ( [ depth, ignoring quotes. `{` is a statement block, not a wrap.
+
+    Used by collapse_wraps so `with(BOD, { plot(...); points(...) })`
+    keeps newlines between statements (R needs them; joining would
+    smash `) points` into one line and raise unexpected symbol).
+    """
     depth = 0
     quote = None
     prev = ''
@@ -80,23 +85,41 @@ def _bracket_depth(text):
                 quote = None
         elif c in '"\'`':
             quote = c
-        elif c in '([{':
+        elif c in '([':
             depth += 1
-        elif c in ')]}':
+        elif c in ')]':
             depth -= 1
         prev = c
     return depth
 
 
+def _is_call_continuer(text):
+    """True if this line continues an open ( [ call, not a new statement.
+
+    After `with(BOD, {` the call depth is still 1 (the `with(`), but
+    `plot(...)` is a *new* statement inside `{`, not a wrap of `with(`.
+    Continuers start with `)`, `]`, or `,` (lone closing / trailing
+    argument of the *outer* call).
+    """
+    s = (text or '').lstrip()
+    if not s:
+        return False
+    return s[0] in ')],'
+
+
 def collapse_wraps(text):
     """Join editor wraps into one line (fig 1 → fig 2). Tokens unchanged.
 
-    Joins while the previous line is an unfinished call: trailing
-    operator (comma, `(`, `%>%`, …) **or** unmatched `([{` depth.
-    Without depth, a closing `)` alone on the next line stayed separate
-    → STATghost still took the 2+ line `source(echo=TRUE)` path and the
-    Config option looked dead. Leaves multi-line strings, `#` mid-line
-    comments, blank sniper cuts, and unbraced `if` bodies as they are.
+    Joins while the previous line is an unfinished *call*: trailing
+    operator (comma, `(`, `%>%`, …) **or** unmatched `(` / `[` depth
+    *and* the next line continues that call (starts with `)` / `]` /
+    `,`). `{` / `}` are statement braces — do not join `plot(...)`
+    onto `with(BOD, {`, or `plot(...) points(...)` becomes a syntax
+    error. Without call depth, a closing `)` alone on the next line
+    stayed separate → STATghost still took the 2+ line
+    `source(echo=TRUE)` path and the Config option looked dead.
+    Leaves multi-line strings, `#` mid-line comments, blank sniper
+    cuts, and unbraced `if` bodies.
     """
     if text is None or '\n' not in text:
         return text if text is not None else ''
@@ -112,14 +135,13 @@ def collapse_wraps(text):
         if nxt == '' or nxt.startswith('#'):
             out.append(line)
             continue
-        if (
-            prev
-            and not _has_code_comment(prev)
-            and (
-                ends_in_operator(prev)
-                or _bracket_depth(prev) > 0
-            )
-        ):
+        join = False
+        if prev and not _has_code_comment(prev):
+            if ends_in_operator(prev):
+                join = True
+            elif _call_depth(prev) > 0 and _is_call_continuer(nxt):
+                join = True
+        if join:
             out[-1] = prev + ' ' + nxt
             continue
         out.append(line.rstrip())
