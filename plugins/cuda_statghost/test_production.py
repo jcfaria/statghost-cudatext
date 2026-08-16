@@ -3,6 +3,11 @@
 # No human hands. Opens sample tabs, fires the *configured* Send hotkey,
 # asserts STATghost clip.R got the statement.
 #
+# Live EVAL must be valid for the *armed* engine (this lab: R). Python
+# extract stays in test_unit.py — sending def/for into R paints Error:
+# on the Console. Chunks that need session objects (predict(m_1)) are
+# sent only after the assignment that creates them.
+#
 #   /tmp/sg_prod_venv/bin/python test_production.py
 #   python3 test_production.py          # needs python-xlib + wmctrl + xclip
 
@@ -266,29 +271,15 @@ class TestProductionCudaToSG(unittest.TestCase):
             or 'str(BOD)' in text or 'BOD' in text,
         )
 
-    def test_04_sample12_with_block(self):
+    def test_04_sample12_nls_then_with(self):
+        self._open('R/12_rl_linear_vs_nlinear.R', 37)
+        text = self._send_and_wait('nls(demand')
+        self.assertIn('data = BOD', text)
         self._open('R/12_rl_linear_vs_nlinear.R', 87)
         text = self._send_and_wait('with(BOD')
         self.assertIn('plot(demand ~ Time', text)
-        self.assertIn('points(', text)
-        self.assertIn('lines(', text)
+        self.assertIn('predict(m_1)', text)
         self.assertIn('})', text)
-
-    def test_05_py_hello_print(self):
-        self._open('Python/01_hello.py', 6)
-        text = self._send_and_wait('hello from STATghost Python')
-        self.assertIn('print(', text)
-
-    def test_06_py_def_add(self):
-        self._open('Python/06_functions.py', 7)
-        text = self._send_and_wait('def add(x, y)')
-        self.assertIn('return x + y', text)
-
-    def test_07_py_compound_try_for(self):
-        self._open('Python/26_compound_try_for.py', 8)
-        text = self._send_and_wait('for i in range(5)')
-        self.assertIn('except ValueError', text)
-        self.assertIn('raise ValueError', text)
 
 
 if __name__ == '__main__':

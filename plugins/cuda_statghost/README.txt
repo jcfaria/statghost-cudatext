@@ -27,7 +27,8 @@ TF (automatic, no human hands):
   1) python3 test_unit.py              — headless
   2) python3 test_functional.py        — clipboard → running STATghost
   3) python3 test_production.py        — running CudaText plugin → STATghost
-     R samples + Python (print / def / try-for). Reads keys.json
+     R only (armed engine). Python extract is test_unit.py — a live
+     def/for into R is a Console Error:. Reads keys.json
      (this lab: Ctrl+Space). Bootstraps /tmp/sg_prod_venv (python-xlib).
      Logs: /tmp/sg_tf/last.log
 
