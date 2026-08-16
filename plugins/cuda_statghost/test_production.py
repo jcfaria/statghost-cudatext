@@ -35,6 +35,8 @@ _KEYSYM = {
     'enter': 'Return',
     'return': 'Return',
     'space': 'space',
+    'escape': 'Escape',
+    'esc': 'Escape',
 }
 
 
@@ -102,15 +104,30 @@ def _set_clip(text):
         pass
 
 
-def _cuda_wid():
+def _cuda_row():
     try:
         out = subprocess.check_output(['wmctrl', '-lx'], text=True)
     except (OSError, subprocess.CalledProcessError):
         return None
     for line in out.splitlines():
         if 'cudatext.Cudatext' in line or 'CudaText' in line:
-            return int(line.split()[0], 16)
+            return line
     return None
+
+
+def _cuda_wid():
+    row = _cuda_row()
+    if not row:
+        return None
+    return int(row.split()[0], 16)
+
+
+def _cuda_title():
+    row = _cuda_row()
+    if not row:
+        return ''
+    parts = row.split(None, 4)
+    return parts[4] if len(parts) > 4 else ''
 
 
 def _focus(wid):
@@ -191,36 +208,43 @@ class TestProductionCudaToSG(unittest.TestCase):
     def _open(self, rel, line_1based):
         path = os.path.join(SAMPLE, rel)
         self.assertTrue(os.path.isfile(path), path)
+        want = os.path.basename(path)
         subprocess.Popen(
             [self.exe, '%s@%d' % (path, line_1based)],
             start_new_session=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        time.sleep(1.3)
-        _focus(self.wid)
+        deadline = time.time() + 10.0
+        title = ''
+        while time.time() < deadline:
+            title = _cuda_title()
+            if want in title:
+                _focus(self.wid)
+                time.sleep(0.35)
+                return
+            time.sleep(0.15)
+        self.fail('CudaText did not show %s (title=%r)' % (want, title))
 
-    def _send_and_wait(self, needle, timeout=14.0):
-        _focus(self.wid)
-        _send_chord(self.send)
-        deadline = time.time() + timeout
+    def _send_and_wait(self, needle, timeout=10.0):
         last = ''
-        while time.time() < deadline:
-            last = _read(self.clip)
-            if needle in last:
-                return last
-            time.sleep(0.12)
-        _focus(self.wid)
-        _send_chord(self.send)
-        deadline = time.time() + 8.0
-        while time.time() < deadline:
-            last = _read(self.clip)
-            if needle in last:
-                return last
-            time.sleep(0.12)
+        for attempt in range(3):
+            _set_clip(protocol.make_command(protocol.CMD_ARM))
+            time.sleep(0.2)
+            _focus(self.wid)
+            _send_chord('Escape')
+            time.sleep(0.08)
+            _send_chord(self.send)
+            deadline = time.time() + timeout
+            while time.time() < deadline:
+                last = _read(self.clip)
+                if needle in last:
+                    return last
+                time.sleep(0.12)
         self.fail(
-            'plugin Send (%s) did not put %r into %s\n--- clip.R ---\n%s'
-            % (self.send, needle, self.clip, last[:400])
+            'plugin Send (%s) did not put %r into %s\n--- title ---\n%s\n'
+            '--- clip.R ---\n%s'
+            % (self.send, needle, self.clip, _cuda_title(), last[:400])
         )
 
     def test_01_hello_one_plus_one(self):
