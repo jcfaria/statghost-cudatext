@@ -49,7 +49,7 @@ def _configured_exe():
 
 
 def _sibling_exe():
-    """Companion plugins/cuda_statghost → ../statghost/src/_out/<exe>."""
+    """Companion cudatext/cuda_statghost → ../statghost/src/_out/<exe>."""
     here = os.path.dirname(os.path.realpath(__file__))
     return os.path.normpath(os.path.join(
         here, '..', '..', '..', 'statghost', 'src', '_out', exe_name()

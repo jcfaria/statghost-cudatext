@@ -51,7 +51,7 @@ VP-WB-2  Glifos Tinn 16px → 24/32 (stash; swap opcional)
 (`imlTinnR`). Plugin Flaticon 16/24/32 tintáveis permanece. Dono:
 importar **sweave / knit / knit-html** (266 / 277) e o 1.º recorte
 **R-control** (14–17, 21–23, 27, 234, 235, 253) para
-`plugins/cuda_statghost/png/` em 16/24/32; sem tint.
+`cudatext/cuda_statghost/png/` em 16/24/32; sem tint.
 
 IN:
   - Extrair índices essenciais do DFM para `w_todo/icons/{16,24,32}px/`.

@@ -5,7 +5,7 @@ Estado: VP-WB-1 GO+CODE (ninhos essenciais); VP-WB-2 stash de glifos;
   VP-WB-3 REGISTO; VP-WB-4 Rnoweb REGISTO; VP-WB-5 R-control GO+CODE
 Atualizado: 2026-08-16 (R-control: conforto = controlar o SG sem Alt-Tab)
 Prioridade: compactar a barra do plugin sem inchamento Tinn
-Branch CODE: `work` (este companion `jcfaria/statghost-cudatext`)
+Branch CODE: `work` (este companion `jcfaria/statghost-plugins`)
 Origem: Tinn-R_D `TBRMain` (ufrmMain.dfm, Toolbar2000) + pedido dono
   2026-08-16 (essencial, aninhado, ícones 16→24/32)
 CPR: 02_cpr_workbar.txt (VP-WB-*)
@@ -194,7 +194,7 @@ IN (WB-1):
 IN (WB-2, stash + recortes a cores no plugin):
   - Extrair índices essenciais de `imlTinnR` para `w_todo/icons/`.
   - **Rnoweb:** sweave (266) e knit (277; alias knit-html) em
-    `plugins/cuda_statghost/png/{16,24,32}px/`, **sem** tint.
+    `cudatext/cuda_statghost/png/{16,24,32}px/`, **sem** tint.
   - **R-control (1.º recorte):** ls/print/head/tail/names/str/plot/
     help_selected/close_graphics/remove_objects/clear_all — idem,
     **sem** tint. clear_console Tinn (20) só no stash.

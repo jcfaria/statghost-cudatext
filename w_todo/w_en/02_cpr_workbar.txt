@@ -51,7 +51,7 @@ VP-WB-2  Tinn glyphs 16px → 24/32 (stash; optional swap)
 are 16px (`imlTinnR`). The Flaticon 16/24/32 tintable set stays. Owner:
 import **sweave / knit / knit-html** (266 / 277) and the first-cut
 **R-control** set (14–17, 21–23, 27, 234, 235, 253) into
-`plugins/cuda_statghost/png/` at 16/24/32; no tint.
+`cudatext/cuda_statghost/png/` at 16/24/32; no tint.
 
 IN:
   - Extract essential DFM indexes into `w_todo/icons/{16,24,32}px/`.

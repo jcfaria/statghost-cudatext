@@ -1,5 +1,5 @@
-docs/ — companion notes
-=======================
+docs/ — companion notes (STATghost-plugins)
+===========================================
 
 SAP/CPR bridges: STATghost `w_todo` packs 16/17 · D29.
 Plugin WORKBAR (this repo): `w_todo/` packs 01/02 · VP-WB-*

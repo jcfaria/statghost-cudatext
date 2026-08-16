@@ -1,7 +1,7 @@
 lexer/ — promoted packs (canonical)
 =======================================================
 Updated: 2026-08-06
-Repo: jcfaria/statghost-cudatext
+Repo: jcfaria/statghost-plugins
 
 Edit: `../lexer-dev/`. Then copy here. Install into CudaText `data/lexlib`.
 STATghost does **not** mirror this tree in source — `src/build.ps1` copies

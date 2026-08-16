@@ -3,7 +3,7 @@ title=STATghost
 desc=Send/Source/Inspect to STATghost; outline; Arm/Idle; Start/Quit; Clear; toolbar + side tab
 type=cudatext-plugin
 subdir=cuda_statghost
-homepage=https://github.com/jcfaria/statghost-cudatext
+homepage=https://github.com/jcfaria/statghost-plugins
 
 [item1]
 section=events

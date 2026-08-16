@@ -23,7 +23,7 @@ Layout (add a module, not a god-file):
   png/            toolbar / sidebar glyphs (16/24/32; no Explorer set)
 
 TF (automatic, no human hands):
-  bash plugins/run_tf.sh
+  bash cudatext/run_tf.sh
   1) python3 test_unit.py              — headless
   2) python3 test_functional.py        — clipboard → running STATghost
   3) python3 test_production.py        — running CudaText plugin → STATghost

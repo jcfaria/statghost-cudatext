@@ -5,7 +5,7 @@ Status: VP-WB-1 GO+CODE (essential nests); VP-WB-2 glyph stash;
   VP-WB-3 RECORD; VP-WB-4 Rnoweb/knit/sweave RECORD; VP-WB-5 R-control GO+CODE
 Updated: 2026-08-16 (R-control: comfort = drive SG without Alt-Tab)
 Priority: compact the plugin bar without importing all of Tinn
-CODE branch: `work` (this companion `jcfaria/statghost-cudatext`)
+CODE branch: `work` (this companion `jcfaria/statghost-plugins`)
 Origin: Tinn-R_D `TBRMain` (ufrmMain.dfm, Toolbar2000) + owner request
   2026-08-16 (essential only, nested, 16→24/32 icons)
 CPR: 02_cpr_workbar.txt (VP-WB-*)
@@ -197,7 +197,7 @@ IN (WB-1):
 IN (WB-2, stash + colour subsets in the plugin):
   - Extract essential `imlTinnR` indexes into `w_todo/icons/`.
   - **Rnoweb:** sweave (266) and knit (277; knit-html alias) in
-    `plugins/cuda_statghost/png/{16,24,32}px/`, **no** tint.
+    `cudatext/cuda_statghost/png/{16,24,32}px/`, **no** tint.
   - **R-control (first cut):** ls/print/head/tail/names/str/plot/
     help_selected/close_graphics/remove_objects/clear_all — same,
     **no** tint. Tinn clear_console (20) stash only.

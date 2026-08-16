@@ -1,7 +1,7 @@
 lexer-dev/ — workshop for CudaText LCF packs
 =======================================================
 Updated: 2026-08-06
-Repo: jcfaria/statghost-cudatext (canonical)
+Repo: jcfaria/statghost-plugins (canonical)
 
 Edit here, validate in CudaText `data/lexlib`, then copy into:
   - this repo `lexlib/` (promoted)

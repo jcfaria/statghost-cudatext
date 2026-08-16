@@ -1,5 +1,5 @@
-plugins/ — CudaText peer plugins (VP-EB-1 + EB-1b bar)
-======================================================
+cudatext/ — STATghost host for CudaText (VP-EB-1 + EB-1b + workbar)
+==================================================================
 
 cuda_statghost/  send selection / complete statement; Toggle Arm/Idle
                  (`#. STATGHOST:<CMD>` clipboard contract — protocol.py
@@ -10,9 +10,14 @@ cuda_statghost/  send selection / complete statement; Toggle Arm/Idle
                  realpath so a symlink install still finds the sibling
                  clone.
 
+The folder name `cuda_statghost` is required by CudaText (`py/` +
+install.inf subdir). The student menu caption is **STATghost**.
+
+Universal identity (menu / workbar / protocol): `../shared/README.txt`.
+
 Lab Linux (portable CudaText sibling):
-  bash plugins/install_lab.sh
-  # or: CUDA_ROOT=/path/to/CudaText bash plugins/install_lab.sh
+  bash cudatext/install_lab.sh
+  # or: CUDA_ROOT=/path/to/CudaText bash cudatext/install_lab.sh
 
 Then restart CudaText. STATghost must be running and Armed for eval.
 

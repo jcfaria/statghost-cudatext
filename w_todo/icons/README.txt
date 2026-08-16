@@ -39,6 +39,6 @@ Extracted from `imlTinnR` (TPngImageList, 16×16 RGBA) in
 
 These are **colour** glyphs. The plugin Flaticon set stays **monochrome
 tintable**. Owner GO 2026-08-16: **Rnoweb** and first-cut **R-control**
-glyphs also ship in `plugins/cuda_statghost/png/{16,24,32}px/` and skip
+glyphs also ship in `cudatext/cuda_statghost/png/{16,24,32}px/` and skip
 tint (`chrome._COLOUR_PNG`). Remaining stash (Send families, workdir,
 clear_console, chunks) stays here until a full WB-2 swap GO.

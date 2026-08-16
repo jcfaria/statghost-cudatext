@@ -1,6 +1,6 @@
-w_todo — working docs (SAP / CPR for the CudaText peer plugin)
+w_todo — working docs (SAP / CPR for STATghost-plugins chrome)
 ===============================================================
-Updated: 2026-08-16
+Updated: 2026-08-16 (repo rename: statghost-cudatext → statghost-plugins)
 Reading preference: **Portuguese (w_pt/br)**. Always keep EN twins.
 
 Layout:
