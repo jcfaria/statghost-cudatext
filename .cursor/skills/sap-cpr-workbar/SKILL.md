@@ -42,7 +42,8 @@ Related (do not steal ownership):
 - Rnoweb Sweave/knitr = **IN classroom** (EVAL already); toolbar buttons
   = VP-WB-4 RECORD (SG interprets; CudaText opens artefact and compiles).
   `knit2pdf` / TeX inside STATghost remains OUT.
-- Toolbar nests; side tab stays expanded (one vertical column, no wrap).
+- Same nest tree on Plugins menu, toolbar and side tab (parent +
+  children). Side tab: one vertical column, no wrap.
 - Plugin Flaticon 16/24/32 stay until extra GO to swap Tinn colour glyphs.
 - Tinn-R_D is **read-only**. Pull that clone before citing (parallel lab).
 

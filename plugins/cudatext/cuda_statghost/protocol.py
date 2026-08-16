@@ -30,6 +30,11 @@ def _nonce():
     return '%s-%s' % (time.time_ns(), next(_counter))
 
 
+def next_arm_cmd(plugin_shows_armed):
+    """Absolute ARM/IDLE — never TOGGLE. A guessed flip inverts SG."""
+    return CMD_IDLE if plugin_shows_armed else CMD_ARM
+
+
 def make_command(name):
     cmd = (name or '').strip().upper()
     return PREFIX + cmd + ' ' + _nonce()

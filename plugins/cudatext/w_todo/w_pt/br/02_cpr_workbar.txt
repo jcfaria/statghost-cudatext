@@ -27,9 +27,9 @@ IN:
     o pai está visível (`collapse_nested_rows`). Clique no pai = Send /
     Source. Seta = menu Cuda (`MENU_CREATE` + `BTN_SET_MENU` +
     `BTN_SET_ARROW`).
-  - Aba lateral **não** colapsa (captions).
+  - Aba lateral e menu Plugins usam a **mesma** árvore da toolbar.
   - setwd move para a família Source (antes estava no grupo Edit).
-  - Plugins menu + hotkeys inalterados.
+  - Hotkeys inalterados.
 OUT: botões Knit/Sweave (→ WB-4), Packages, Explorer, Rterm/Rgui/RHost,
   Send Line, Insert nest.
 BOK: `python test_unit.py` verde; lab = seta Send/Source após restart.
@@ -39,7 +39,7 @@ Checklist TF:
   [ ] Toolbar default: 6 top-levels; seta em Send e Source
   [ ] Clique Send = statement/selecção; seta Function/Above/Below/Chunk
   [ ] Clique Source = `.paths[4]`; seta Src sel + setwd
-  [ ] Aba lista os filhos (expandido)
+  [ ] Aba aninha como a toolbar (pai + seta com filhos)
   [ ] Config All/None e checkboxes ainda filtram o menu
   [ ] Sem Consola/Plot/Explorer no CudaText
 
@@ -128,7 +128,7 @@ Checklist TF:
   [ ] Clique Inspect = print; seta ls/str/names/plot/help/head/tail
   [ ] Clique Clear = CLEAR; seta graphics.off / rm / clear all
   [ ] Sem identificador → status, não envia (exceto ls e Clear)
-  [ ] Aba lista os filhos (expandido)
+  [ ] Aba aninha como a toolbar (pai + seta com filhos)
   [ ] Sem widget Plot/Explorer no CudaText
 
 ================================================================================
@@ -159,6 +159,7 @@ JORNAL
   2026-08-16  Bateria `test_workbar.py` + loop 30 min (ciclo suave:
               sem rm/plot/help/Config). on_cli allowlist.
   2026-08-16  Aba: coluna vertical, wrap off (ls/str não partilham linha).
+  2026-08-16  Dono: menu / toolbar / aba partilham a mesma árvore.
 
 ================================================================================
 NEXT STEPS

@@ -308,6 +308,10 @@ class TestWorkbarStatic(unittest.TestCase):
             ['sep', 'cfg', 'arm', 'host', 'sep_send',
              'send', 'source', 'inspect', 'clear'],
         )
+        self.assertEqual(
+            chrome_show.side_keys(show),
+            ('cfg', 'arm', 'host', 'send', 'source', 'inspect', 'clear'),
+        )
 
     def test_cli_allowlist_in_install_inf(self):
         inf = _inf_methods()

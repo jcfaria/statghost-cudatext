@@ -85,11 +85,12 @@ Config (Options → Settings-plugins → STATghost → Config):
     Hidden actions remain in Plugins menu.
 
 Chrome (VP-EB-1b + VP-WB-1, native):
-  Default toolbar: Config | Arm/Idle | Start/Quit | Send▾ | Source▾ | Clear
+  Default toolbar: Config | Arm/Idle | Start/Quit | Send▾ | Source▾ | Inspect▾ | Clear▾
   Send▾ nest: Function, Above, Below, Chunk (click still = Send).
   Source▾ nest: Src sel/fn, setwd (click still = Source file).
-  GOLDEN RULE: same action ids / same relative order (_SIDE from _TB).
-  Toolbar nests related extras; side tab stays expanded (captions).
+  GOLDEN RULE: same action ids / same relative order / same nests
+  on Plugins menu, toolbar and side tab (_SIDE from _TB).
+  Parent click = action; arrow / submenu = children.
   Visibility is one shared list (chrome.show) — never diverge bars.
   Opt-in: Insert <-, Insert pipe, Outline (flat; nest later).
   Send = selection, or the complete statement at caret.

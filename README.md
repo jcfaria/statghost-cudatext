@@ -29,14 +29,18 @@ The folder name on disk is the host; the menu caption is always
 
 ## CudaText (Linux lab)
 
-STATghost must be **running**. **Toggle Arm/Idle** works while Idle
-(control token `#. STATGHOST:TOGGLE_ARM <nonce>` — never eval'd). Send
-of code uses `#. STATGHOST:EVAL <nonce>` plus the student chunk, so the
-same selection can be re-sent (pseudo-random reruns).
+STATghost must be **running**. **Toggle Arm/Idle** sends an absolute
+`#. STATGHOST:ARM` or `#. STATGHOST:IDLE` token (never `TOGGLE_ARM` from
+the button — a guessed flip desyncs the plugin chrome). Send of code
+uses `#. STATGHOST:EVAL <nonce>` plus the student chunk, so the same
+selection can be re-sent (pseudo-random reruns).
 Eval still requires Armed. Empty selection → complete **statement** at the
 caret (brackets, trailing operators, and unbraced R `if (cond)` plus
 its multi-line body — RStudio Ctrl+Enter idea). After a successful
 send, the caret advances to the next code line and **stops**.
+
+Menu, toolbar and side tab share **one nest tree**: parent click = action,
+arrow / submenu = children (`Send▾` `Source▾` `Inspect▾` `Clear▾`).
 
 ```bash
 bash plugins/cudatext/install_lab.sh
@@ -46,10 +50,12 @@ bash plugins/cudatext/install_lab.sh
 Restart CudaText (`cuda_jcf/run.sh`) after plugin changes (Python is
 cached until restart). Then:
 
-- **Plugins → STATghost → Send selection or statement**
+- **Plugins → STATghost → Send → Send** (selection / statement)
+- **Plugins → STATghost → Source / Inspect / Clear** (same children as the bars)
 - **Plugins → STATghost → Toggle Arm/Idle**
 - **Plugins → STATghost → Start/Quit STATghost**
-- Shortcuts: none by default — bind in Command Palette → **F9**
+- First-install chords in `install.inf` (`Ctrl+Enter` Send, …); extra
+  binds in Command Palette → **F9**
 
 Engine = whatever STATghost has Armed (R / Python / Julia). Same chunk
 sent twice without a clipboard change is skipped (same as a human Copy).

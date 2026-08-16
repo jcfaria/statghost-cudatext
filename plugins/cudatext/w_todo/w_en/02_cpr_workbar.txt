@@ -27,9 +27,9 @@ IN:
     while the parent is visible (`collapse_nested_rows`). Parent click =
     Send / Source. Arrow = Cuda menu (`MENU_CREATE` + `BTN_SET_MENU` +
     `BTN_SET_ARROW`).
-  - Side tab does **not** collapse (captions).
+  - Side tab and Plugins menu use the **same** nest tree as the toolbar.
   - setwd moves into the Source family (was in the Edit group).
-  - Plugins menu + hotkeys unchanged.
+  - Hotkeys unchanged.
 OUT: Knit/Sweave **buttons** (→ WB-4), Packages, Explorer, Rterm/Rgui/RHost,
   Send Line, Insert nest.
 BOK: `python test_unit.py` green; lab = Send/Source arrow after restart.
@@ -39,7 +39,7 @@ TF checklist:
   [ ] Default toolbar: 6 top-levels; arrows on Send and Source
   [ ] Send click = statement/selection; arrow Function/Above/Below/Chunk
   [ ] Source click = `.paths[4]`; arrow Src sel + setwd
-  [ ] Side tab lists the children (expanded)
+  [ ] Side tab nests like the toolbar (parent + arrow children)
   [ ] Config All/None and checkboxes still filter the menu
   [ ] No Console/Plot/Explorer in CudaText
 
@@ -129,7 +129,7 @@ TF checklist:
   [ ] Inspect click = print; arrow ls/str/names/plot/help/head/tail
   [ ] Clear click = CLEAR; arrow graphics.off / rm / clear all
   [ ] No identifier → status, do not send (except ls and Clear)
-  [ ] Side tab lists the children (expanded)
+  [ ] Side tab nests like the toolbar (parent + arrow children)
   [ ] No Plot/Explorer widget in CudaText
 
 ================================================================================
@@ -160,6 +160,7 @@ JOURNAL
   2026-08-16  Battery `test_workbar.py` + 30 min loop (gentle: no
               rm/plot/help/Config). on_cli allowlist.
   2026-08-16  Side tab: one vertical column, wrap off (ls/str not a pair).
+  2026-08-16  Owner: menu / toolbar / side tab share one nest tree.
 
 ================================================================================
 NEXT STEPS

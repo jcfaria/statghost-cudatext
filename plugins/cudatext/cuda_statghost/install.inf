@@ -9,81 +9,74 @@ homepage=https://github.com/jcfaria/statghost-plugins
 section=events
 events=on_start2,on_state,on_cli
 
+[item31]
+section=commands
+caption=STATghost\Config
+method=config
+
+[item6]
+section=commands
+caption=STATghost\Config
+method=config
+menu=o
+
+[item3]
+section=commands
+caption=STATghost\Toggle Arm/Idle
+method=toggle_arm
+
+[item4]
+section=commands
+caption=STATghost\Start/Quit STATghost
+method=toggle_host
+
 [item2]
 section=commands
-caption=STATghost\Send selection / function / statement
+caption=STATghost\Send\Send
 method=send_selection
 hotkey=Ctrl+Enter
 
 [item19]
 section=commands
-caption=STATghost\Send enclosing function
+caption=STATghost\Send\Function
 method=send_function
 
 [item9]
 section=commands
-caption=STATghost\Send above (start→caret)
+caption=STATghost\Send\Above
 method=send_above
 hotkey=Ctrl+Alt+B
 
 [item10]
 section=commands
-caption=STATghost\Send below (caret→EOF)
+caption=STATghost\Send\Below
 method=send_below
 hotkey=Ctrl+Alt+E
 
 [item11]
 section=commands
-caption=STATghost\Send sniper chunk
+caption=STATghost\Send\Chunk
 method=send_chunk
 
 [item8]
 section=commands
-caption=STATghost\Source file
+caption=STATghost\Source\Source
 method=send_file
 hotkey=Ctrl+Shift+S
 
 [item12]
 section=commands
-caption=STATghost\Source selection / function
+caption=STATghost\Source\Src sel
 method=source_selection
 
 [item13]
 section=commands
-caption=STATghost\setwd to file directory
+caption=STATghost\Source\setwd
 method=set_wd_here
-
-[item14]
-section=commands
-caption=STATghost\Insert <-
-method=insert_assign
-hotkey=Alt+-
-
-[item15]
-section=commands
-caption=STATghost\Insert pipe
-method=insert_pipe
-hotkey=Ctrl+Shift+M
-
-[item16]
-section=commands
-caption=STATghost\Outline…
-method=show_outline
-hotkey=Ctrl+Shift+O
-
-[item17]
-section=commands
-caption=STATghost\-
-method=_
-
-[item7]
-section=commands
-caption=STATghost\Clear Console
-method=clear_console
 
 [item20]
 section=commands
-caption=STATghost\Inspect\Print selected
+caption=STATghost\Inspect\Print
 method=inspect_print
 
 [item21]
@@ -121,41 +114,53 @@ section=commands
 caption=STATghost\Inspect\tail()
 method=inspect_tail
 
+[item7]
+section=commands
+caption=STATghost\Clear\Clear
+method=clear_console
+
 [item28]
 section=commands
-caption=STATghost\graphics.off()
+caption=STATghost\Clear\graphics.off
 method=inspect_graphics_off
 
 [item29]
 section=commands
-caption=STATghost\Remove all objects
+caption=STATghost\Clear\rm all
 method=inspect_rm_all
 
 [item30]
 section=commands
-caption=STATghost\Clear all
+caption=STATghost\Clear\Clear all
 method=inspect_clear_all
 
-[item3]
+[item14]
 section=commands
-caption=STATghost\Toggle Arm/Idle
-method=toggle_arm
+caption=STATghost\Insert <-
+method=insert_assign
+hotkey=Alt+-
 
-[item4]
+[item15]
 section=commands
-caption=STATghost\Start/Quit STATghost
-method=toggle_host
+caption=STATghost\Insert pipe
+method=insert_pipe
+hotkey=Ctrl+Shift+M
+
+[item16]
+section=commands
+caption=STATghost\Outline…
+method=show_outline
+hotkey=Ctrl+Shift+O
+
+[item17]
+section=commands
+caption=STATghost\-
+method=_
 
 [item5]
 section=commands
 caption=STATghost\Show side tab
 method=open_side
-
-[item6]
-section=commands
-caption=STATghost\Config
-method=config
-menu=o
 
 [item18]
 section=commands

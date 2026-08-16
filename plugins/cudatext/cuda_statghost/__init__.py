@@ -394,13 +394,16 @@ class Command:
         )
 
     def toggle_arm(self):
-        """Ask STATghost to toggle Idle|Armed (works from Idle)."""
+        """Idle→ARM or Armed→IDLE. Absolute tokens — TOGGLE inverts SG."""
+        ch = chrome.get(self)
+        cmd = protocol.next_arm_cmd(ch.is_armed())
+        want = cmd == protocol.CMD_ARM
         _send_command(
-            protocol.CMD_TOGGLE_ARM,
-            'toggle Arm/Idle requested — STATghost must be running',
+            cmd,
+            ('Arm' if want else 'Idle') + ' requested — STATghost must be running',
         )
-        chrome.get(self).note_arm_toggle()
-        chrome.get(self).refresh()
+        ch.note_arm_state(want)
+        ch.refresh()
 
     def toggle_host(self):
         """Start STATghost if it is down; quit if it is up.

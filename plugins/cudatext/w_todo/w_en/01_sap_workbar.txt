@@ -99,8 +99,9 @@ B) **Nests (Cuda toolbar)** — click = parent; arrow = children:
   Default top-level (WB-5):
     Config | Arm/Idle | Start/Quit | Send▾ | Source▾ | Inspect▾ | Clear▾
 
-C) **Side tab:** **expanded** list (captions; one column; no wrap when
-   the panel widens). Same ids / relative order as the bar. No arrow.
+C) **Side tab:** **same nest tree** as the toolbar (parent + arrow
+   children; one column; no wrap when the panel widens). Same ids /
+   relative order. Plugins menu uses the same submenus.
 
 D) **Assign / pipe / Outline:** EB-1b extras, **not** on TBRMain. Stay
    opt-in flats (Config). Insert nest = VP-WB-3.
@@ -191,7 +192,7 @@ Flaticon). Buttons = VP-WB-5 until GO.
 ================================================================================
 IN (WB-1):
   - Send / Source nests on the toolbar; default show includes children.
-  - Expanded side tab; Plugins menu intact; hotkeys intact.
+  - Side tab + Plugins menu share the toolbar nests; hotkeys intact.
   - Host-free tests (`test_unit.py`).
 
 IN (WB-2, stash + colour subsets in the plugin):
@@ -283,6 +284,7 @@ JOURNAL
   2026-08-16  Side tab: wrap put ls()/str() on one row. One vertical
               column (`TOOLBAR_SET_VERTICAL`, wrap off); order =
               expanded main toolbar.
+  2026-08-16  Owner: same nest tree on menu, toolbar and side tab.
 
 ================================================================================
 END SAP workbar

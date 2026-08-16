@@ -91,9 +91,9 @@ TICK_MS = 2000
 # Same left-to-right as FormMain (Settings → Arm → Kill). Panel /
 # Explorer / OnTop stay in STATghost. Clear Console is here (owner).
 #
-# GOLDEN RULE — same action ids / same relative order on toolbar and
-# side tab. Toolbar nests extras under Send / Source / Inspect / Clear
-# (Tinn TBRMain analogue); side tab stays expanded (vertical captions).
+# GOLDEN RULE — same action ids / same relative order / same nests on
+# Plugins menu, toolbar and side tab. Parent click = action; arrow /
+# submenu = children (Send / Source / Inspect / Clear).
 _TB = (
     ('sep', '-', None, None),
     ('cfg', 'STATghost plugin Config', 'config', 'setting-lines.png'),
@@ -323,9 +323,11 @@ class Chrome:
             app_proc(PROC_SIDEPANEL_ACTIVATE, (TITLE, bool(focus)))
         self.refresh()
 
-    def note_arm_toggle(self):
-        if host.is_running():
-            self._armed = not self._armed
+    def is_armed(self):
+        return bool(self._armed and host.is_running())
+
+    def note_arm_state(self, armed):
+        self._armed = bool(armed and host.is_running())
 
     def note_host_down(self):
         self._armed = False
@@ -423,8 +425,17 @@ class Chrome:
             toolbar_proc(h_bar, TOOLBAR_DELETE_BUTTON, index=i)
         il = toolbar_proc(h_bar, TOOLBAR_GET_IMAGELIST)
         side_icons = self._fill_imagelist(il, 16)
+        self._fill_side_buttons(h_bar, side_icons)
+        self._layout_side_bar(h_bar)
+
+    def _fill_side_buttons(self, h_bar, side_icons):
+        """Same nest tree as the main toolbar: parent click + arrow kids."""
         self._side_btns = {}
-        for name, cap, method, _icon in _SIDE:
+        show = prefs.get_chrome_show()
+        methods = {row[0]: row[2] for row in _SIDE}
+        for name, cap, method, _icon in chrome_show.filter_side_actions(
+            _SIDE, show,
+        ):
             toolbar_proc(h_bar, TOOLBAR_ADD_ITEM)
             cnt = toolbar_proc(h_bar, TOOLBAR_GET_COUNT) or 0
             hb = toolbar_proc(h_bar, TOOLBAR_GET_BUTTON_HANDLE, index=cnt - 1)
@@ -438,9 +449,9 @@ class Chrome:
                 hb, BTN_SET_DATA1,
                 'module=cuda_statghost;cmd=' + method + ';',
             )
+            self._attach_nest_menu(hb, name, methods, show)
             self._side_btns[name] = hb
         self._side_icon_idx = side_icons
-        self._layout_side_bar(h_bar)
 
     def _create_toolbar(self, h_bar):
         self._btns = {}
@@ -743,22 +754,7 @@ class Chrome:
             toolbar_proc(h_bar, TOOLBAR_THEME)
             il = toolbar_proc(h_bar, TOOLBAR_GET_IMAGELIST)
             side_icons = self._fill_imagelist(il, 16)
-            for name, cap, method, _icon in _SIDE:
-                toolbar_proc(h_bar, TOOLBAR_ADD_ITEM)
-                cnt = toolbar_proc(h_bar, TOOLBAR_GET_COUNT) or 0
-                hb = toolbar_proc(h_bar, TOOLBAR_GET_BUTTON_HANDLE, index=cnt - 1)
-                if not hb:
-                    continue
-                button_proc(hb, BTN_SET_KIND, BTNKIND_TEXT_ICON_HORZ)
-                button_proc(hb, BTN_SET_TEXT, cap)
-                button_proc(hb, BTN_SET_HINT, cap)
-                button_proc(hb, BTN_SET_IMAGEINDEX, side_icons.get(name, -1))
-                button_proc(
-                    hb, BTN_SET_DATA1,
-                    'module=cuda_statghost;cmd=' + method + ';',
-                )
-                self._side_btns[name] = hb
-            self._side_icon_idx = side_icons
+            self._fill_side_buttons(h_bar, side_icons)
             self._apply_side_visibility()
             self._layout_side_bar(h_bar)
             toolbar_proc(h_bar, TOOLBAR_UPDATE)

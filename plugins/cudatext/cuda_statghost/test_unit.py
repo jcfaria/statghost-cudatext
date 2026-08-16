@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import ast
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -110,6 +111,11 @@ class TestProtocol(unittest.TestCase):
         a = protocol.make_command(protocol.CMD_ARM)
         b = protocol.make_command(protocol.CMD_ARM)
         self.assertNotEqual(a, b)
+
+    def test_next_arm_cmd_absolute(self):
+        self.assertEqual(protocol.next_arm_cmd(False), protocol.CMD_ARM)
+        self.assertEqual(protocol.next_arm_cmd(True), protocol.CMD_IDLE)
+        self.assertNotEqual(protocol.next_arm_cmd(False), protocol.CMD_TOGGLE_ARM)
 
 
 class TestPaths(unittest.TestCase):
@@ -298,21 +304,65 @@ class TestChromeShow(unittest.TestCase):
         side = (
             ('cfg', 'Config', 'config', 'a.png'),
             ('send', 'Send', 'send_selection', 'b.png'),
+            ('function', 'Function', 'send_function', 'f.png'),
             ('clear', 'Clear', 'clear_console', 'c.png'),
         )
         out = chrome_show.filter_side_actions(side, ('send',))
         self.assertEqual([r[0] for r in out], ['send'])
+        collapsed = chrome_show.filter_side_actions(
+            side, ('send', 'function', 'clear'),
+        )
+        self.assertEqual([r[0] for r in collapsed], ['send', 'clear'])
 
     def test_side_keys_match_toolbar_order(self):
         keys = chrome_show.side_keys(chrome_show.DEFAULT_SHOW)
-        self.assertEqual(keys, chrome_show.DEFAULT_SHOW)
+        self.assertEqual(
+            keys,
+            ('cfg', 'arm', 'host', 'send', 'source', 'inspect', 'clear'),
+        )
         nested = chrome_show.collapse_nested_rows(
             tuple((k, k, k, 'x.png') for k in chrome_show.DEFAULT_SHOW),
         )
-        top = [r[0] for r in nested]
-        pos = {k: i for i, k in enumerate(keys)}
-        ranked = [pos[k] for k in top]
-        self.assertEqual(ranked, sorted(ranked))
+        top = tuple(r[0] for r in nested)
+        self.assertEqual(keys, top)
+
+    def test_menu_path_nests(self):
+        self.assertEqual(chrome_show.menu_path('cfg'), 'Config')
+        self.assertEqual(chrome_show.menu_path('send'), 'Send\\Send')
+        self.assertEqual(chrome_show.menu_path('function'), 'Send\\Function')
+        self.assertEqual(chrome_show.menu_path('source'), 'Source\\Source')
+        self.assertEqual(chrome_show.menu_path('inspect'), 'Inspect\\Print')
+        self.assertEqual(chrome_show.menu_path('ls'), 'Inspect\\ls()')
+        self.assertEqual(chrome_show.menu_path('clear'), 'Clear\\Clear')
+        self.assertEqual(chrome_show.menu_path('clear_all'), 'Clear\\Clear all')
+        self.assertEqual(
+            set(chrome_show.ACTION_METHODS),
+            set(chrome_show.ACTION_KEYS),
+        )
+
+    def test_install_inf_menu_tree(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, 'install.inf'), encoding='utf-8') as fh:
+            text = fh.read()
+        by_method = {}
+        for block in re.split(r'\n(?=\[item\d+\])', text):
+            if 'section=commands' not in block:
+                continue
+            if re.search(r'(?m)^menu=0\s*$', block):
+                continue
+            cap_m = re.search(r'(?m)^caption=STATghost\\(.+)$', block)
+            meth_m = re.search(r'(?m)^method=(\w+)\s*$', block)
+            if not cap_m or not meth_m:
+                continue
+            by_method.setdefault(meth_m.group(1), []).append(cap_m.group(1))
+        for key in chrome_show.ACTION_KEYS:
+            method = chrome_show.ACTION_METHODS[key]
+            expected = chrome_show.menu_path(key)
+            self.assertIn(
+                expected,
+                by_method.get(method, []),
+                '%s (%s) missing STATghost\\%s' % (key, method, expected),
+            )
 
     def test_checklist_roundtrip(self):
         keys = ('cfg', 'send', 'clear')

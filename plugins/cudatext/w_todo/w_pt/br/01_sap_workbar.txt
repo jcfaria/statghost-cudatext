@@ -98,8 +98,9 @@ B) **Ninhos (toolbar Cuda)** — clique = pai; seta = filhos:
   Default top-level (WB-5):
     Config | Arm/Idle | Start/Quit | Send▾ | Source▾ | Inspect▾ | Clear▾
 
-C) **Aba lateral:** lista **expandida** (captions; uma coluna; sem wrap
-   quando a aba alarga). Mesmos ids / ordem relativa da barra. Sem seta.
+C) **Aba lateral:** **a mesma árvore** da toolbar (pai + seta com
+   filhos; uma coluna; sem wrap quando a aba alarga). Mesmos ids /
+   ordem relativa. O menu Plugins usa os mesmos submenus.
 
 D) **Assign / pipe / Outline:** extras EB-1b, **não** estão na TBRMain.
    Continuam opt-in planos (Config). Ninho Insert = VP-WB-3.
@@ -188,7 +189,7 @@ Flaticon). Botões = VP-WB-5 até GO.
 ================================================================================
 IN (WB-1):
   - Ninhos Send / Source no toolbar; default show inclui os filhos.
-  - Aba expandida; Plugins menu intacto; hotkeys intactos.
+  - Aba + menu Plugins partilham os ninhos da toolbar; hotkeys intactos.
   - Testes sem host Cuda (`test_unit.py`).
 
 IN (WB-2, stash + recortes a cores no plugin):
@@ -282,6 +283,7 @@ JORNAL
   2026-08-16  Aba: wrap fazia ls()/str() na mesma linha. Coluna
               vertical (`TOOLBAR_SET_VERTICAL`, wrap off); ordem =
               barra principal expandida.
+  2026-08-16  Dono: a mesma árvore (menu, toolbar e aba).
 
 ================================================================================
 FIM SAP workbar

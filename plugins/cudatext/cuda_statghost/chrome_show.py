@@ -1,7 +1,6 @@
-# Shared toolbar / side-tab visibility (pure — no CudaText).
-# One show-list for both bars (same action ids / same relative order).
-# Toolbar may nest related extras under a parent (Tinn TBRMain analogue);
-# the side tab stays expanded (vertical captions).
+# Shared toolbar / side-tab / Plugins-menu visibility (pure — no CudaText).
+# One show-list, one nest tree, same action ids / same relative order.
+# Menu, toolbar and side tab all use parent + children (NESTS).
 
 from __future__ import annotations
 
@@ -15,7 +14,7 @@ ACTION_KEYS = (
     'assign', 'pipe', 'outline',
 )
 # Classroom default: cores + Send/Source/Inspect/Clear extras (compacted
-# on the main toolbar via NESTS; still listed on the side tab).
+# on menu, toolbar and side tab via NESTS).
 DEFAULT_SHOW = (
     'cfg', 'arm', 'host',
     'send', 'function', 'above', 'below', 'chunk',
@@ -24,13 +23,112 @@ DEFAULT_SHOW = (
     'clear', 'close_graphics', 'remove_objects', 'clear_all',
 )
 
-# Parent → related extras. Click = parent action; arrow = children.
+# Parent → related extras. Click = parent action; arrow / submenu = children.
 NESTS = (
     ('send', ('function', 'above', 'below', 'chunk')),
     ('source', ('srcsel', 'setwd')),
     ('inspect', ('ls', 'str', 'names', 'plot', 'help', 'head', 'tail')),
     ('clear', ('close_graphics', 'remove_objects', 'clear_all')),
 )
+
+# Plugins menu + nest labels (same tree as the bars).
+NEST_MENU = {
+    'send': 'Send',
+    'source': 'Source',
+    'inspect': 'Inspect',
+    'clear': 'Clear',
+}
+MENU_CAP = {
+    'cfg': 'Config',
+    'arm': 'Toggle Arm/Idle',
+    'host': 'Start/Quit STATghost',
+    'send': 'Send',
+    'function': 'Function',
+    'above': 'Above',
+    'below': 'Below',
+    'chunk': 'Chunk',
+    'source': 'Source',
+    'srcsel': 'Src sel',
+    'setwd': 'setwd',
+    'inspect': 'Print',
+    'ls': 'ls()',
+    'str': 'str()',
+    'names': 'names()',
+    'plot': 'plot()',
+    'help': 'Help',
+    'head': 'head()',
+    'tail': 'tail()',
+    'clear': 'Clear',
+    'close_graphics': 'graphics.off',
+    'remove_objects': 'rm all',
+    'clear_all': 'Clear all',
+    'assign': 'Insert <-',
+    'pipe': 'Insert pipe',
+    'outline': 'Outline…',
+}
+ACTION_METHODS = {
+    'cfg': 'config',
+    'arm': 'toggle_arm',
+    'host': 'toggle_host',
+    'send': 'send_selection',
+    'function': 'send_function',
+    'above': 'send_above',
+    'below': 'send_below',
+    'chunk': 'send_chunk',
+    'source': 'send_file',
+    'srcsel': 'source_selection',
+    'setwd': 'set_wd_here',
+    'inspect': 'inspect_print',
+    'ls': 'inspect_ls',
+    'str': 'inspect_str',
+    'names': 'inspect_names',
+    'plot': 'inspect_plot',
+    'help': 'inspect_help',
+    'head': 'inspect_head',
+    'tail': 'inspect_tail',
+    'clear': 'clear_console',
+    'close_graphics': 'inspect_graphics_off',
+    'remove_objects': 'inspect_rm_all',
+    'clear_all': 'inspect_clear_all',
+    'assign': 'insert_assign',
+    'pipe': 'insert_pipe',
+    'outline': 'show_outline',
+}
+
+
+def nest_parent(key):
+    """Parent action id if *key* is a nest child; else None."""
+    for parent, kids in NESTS:
+        if key in kids:
+            return parent
+    return None
+
+
+def menu_path(key):
+    """Caption after `STATghost\\` — submenu for nests, else top-level."""
+    cap = MENU_CAP.get(key, key)
+    if key in NEST_MENU:
+        return NEST_MENU[key] + '\\' + cap
+    parent = nest_parent(key)
+    if parent:
+        return NEST_MENU[parent] + '\\' + cap
+    return cap
+
+
+def collapse_keys(keys):
+    """Drop children whose parent is also present (toolbar / side / menu)."""
+    present = []
+    seen = set()
+    for key in keys:
+        if key in ACTION_KEYS and key not in seen:
+            present.append(key)
+            seen.add(key)
+    hide = set()
+    have = set(present)
+    for parent, kids in NESTS:
+        if parent in have:
+            hide.update(k for k in kids if k in have)
+    return tuple(k for k in present if k not in hide)
 
 # Command methods `-p=cuda_statghost#method` may invoke (lab / cyclic TF).
 # Config / Arm / Start-Quit stay human clicks — TDR + session safety.
@@ -148,8 +246,8 @@ def filter_toolbar_rows(tb_rows, show_keys):
 
     tb_rows: iterable of (name, hint, method, icon); method is None for seps.
     show_keys: iterable of action ids. Explicit empty → no buttons.
-    Does **not** collapse nests — call collapse_nested_rows for the
-    main toolbar. Side tab uses the uncollapsed list.
+    Does **not** collapse nests — call collapse_nested_rows (toolbar)
+    or filter_side_actions (side tab) so all three surfaces share NESTS.
     """
     if show_keys is None:
         show = set(DEFAULT_SHOW)
@@ -187,7 +285,7 @@ def filter_toolbar_rows(tb_rows, show_keys):
 
 
 def filter_side_actions(side_rows, show_keys):
-    """Filter side (name, cap, method, icon) rows — no separators, no nest hide."""
+    """Filter side rows — same nest collapse as the main toolbar."""
     if show_keys is None:
         show = set(DEFAULT_SHOW)
     else:
@@ -195,11 +293,13 @@ def filter_side_actions(side_rows, show_keys):
         if not keys:
             return ()
         show = set(parse_show(','.join(keys), default=()))
-    return tuple(row for row in side_rows if row[0] in show)
+    rows = tuple(row for row in side_rows if row[0] in show)
+    keep = set(collapse_keys(tuple(r[0] for r in rows)))
+    return tuple(row for row in rows if row[0] in keep)
 
 
 def side_keys(show_keys=None):
-    """Expanded side-tab action ids: same relative order as the main toolbar."""
+    """Side-tab action ids: same ids / order / nests as the main toolbar."""
     if show_keys is None:
         wanted = set(DEFAULT_SHOW)
     else:
@@ -207,4 +307,4 @@ def side_keys(show_keys=None):
         if not keys:
             return ()
         wanted = set(parse_show(','.join(keys), default=()))
-    return tuple(k for k in ACTION_KEYS if k in wanted)
+    return collapse_keys(tuple(k for k in ACTION_KEYS if k in wanted))
