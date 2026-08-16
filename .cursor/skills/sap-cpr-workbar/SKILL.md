@@ -23,8 +23,8 @@ VP-WB-\* (WB-1 nested chrome and WB-5 Inspect/Clear already GO
 
 | EN | PT |
 |----|----|
-| `w_todo/w_en/01_sap_workbar.txt` | `w_todo/w_pt/br/01_sap_workbar.txt` |
-| `w_todo/w_en/02_cpr_workbar.txt` | `w_todo/w_pt/br/02_cpr_workbar.txt` |
+| `plugins/cudatext/w_todo/w_en/01_sap_workbar.txt` | `plugins/cudatext/w_todo/w_pt/br/01_sap_workbar.txt` |
+| `plugins/cudatext/w_todo/w_en/02_cpr_workbar.txt` | `plugins/cudatext/w_todo/w_pt/br/02_cpr_workbar.txt` |
 
 Related (do not steal ownership):
 - EDITOR-BRIDGE: STATghost packs `16`/`17` · D29 — this repo cites only.
@@ -48,6 +48,6 @@ Related (do not steal ownership):
 
 ## Deliverable when invoked
 
-1. Keep EN + PT `01`/`02` (+ `w_todo/README.txt`) mirrored.
+1. Keep EN + PT `01`/`02` (+ `plugins/cudatext/w_todo/README.txt`) mirrored.
 2. Short chat summary in **PT**: VP-WB status, first GO, no Tinn CODE.
 3. No extra product CODE without human GO per remaining VP-WB-\*.

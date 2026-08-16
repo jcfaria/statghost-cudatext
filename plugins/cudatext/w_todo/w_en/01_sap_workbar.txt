@@ -1,0 +1,289 @@
+================================================================================
+SAP -- CudaText plugin: work toolbar (Tinn-R_D → chrome)
+================================================================================
+Status: VP-WB-1 GO+CODE (essential nests); VP-WB-2 glyph stash;
+  VP-WB-3 RECORD; VP-WB-4 Rnoweb/knit/sweave RECORD; VP-WB-5 R-control GO+CODE
+Updated: 2026-08-16 (R-control: comfort = drive SG without Alt-Tab)
+Priority: compact the plugin bar without importing all of Tinn
+CODE branch: `work` (this companion `jcfaria/statghost-plugins`)
+Origin: Tinn-R_D `TBRMain` (ufrmMain.dfm, Toolbar2000) + owner request
+  2026-08-16 (essential only, nested, 16→24/32 icons)
+CPR: 02_cpr_workbar.txt (VP-WB-*)
+Related: STATghost packs 16/17 · D29 (EDITOR-BRIDGE); VP-EB-1 / EB-1b
+  already BOK in the plugin. Do **not** merge with Explorer / GEOM (14/15).
+Decisions: D29 [P] (receiver; thin plugins; Tinn read-only)
+Glossary: WORKBAR, VP-WB, TBRMain
+PT twin: ../../w_pt/br/01_sap_workbar.txt
+Skill: `.cursor/skills/sap-cpr-workbar/SKILL.md`
+Reference: `C:\Users\jcfaria\Documents\GitHub\Tinn-R_D` branch `work`
+  HEAD `6126062` (pull 2026-08-16)
+
+**MOTTO:** Keep this project as simple and effective as possible!
+
+================================================================================
+0. NAME AND SCOPE
+================================================================================
+Adapt **only the essential** of Tinn-R_D's R workbar (`TBRMain`) onto the
+plugin's native chrome (`chrome.py` / CudaText main toolbar).
+
+STATghost stays the **receiver**. The plugin does **not** import the
+Explorer widget, Packages, Rterm/Rgui/RHost, TCP, or a Plot pane. The
+TBRMain **R control** cut (inspect the word / session hygiene) **is**
+classroom comfort: click in CudaText; SG evaluates; **no** need to
+switch the active window. See §3.G / VP-WB-5.
+
+Rnoweb (Sweave / knitr) is **not** fenced out: the student can already
+send R chunks and `Sweave()` / `knit()` via EVAL (EB-0 contract). What
+WB-1 left out were only the TBRMain Knit/Sweave **buttons** — not the
+Rnoweb classroom. See §3.F / VP-WB-4.
+
+Umbrella: **WORKBAR**. Extension of VP-EB-1b, not a second chrome.
+
+================================================================================
+1. GOAL
+================================================================================
+ - Compact the bar: **nested** buttons for related tasks (TTBSubmenuItem
+   pattern: Chunk, Workdir, Knitr, R start/close).
+ - Parent click remains the classroom primary (Send / Source).
+ - Do not clone TBRMain wholesale.
+ - Icons: plugin already has tintable 16/24/32 (Flaticon). Tinn glyphs
+   are 16px in `imlTinnR` (TPngImageList in the DFM) — extract the useful
+   subset and generate 24/32 into the **stash** `plugins/cudatext/w_todo/icons/` (plugin
+   swap = VP-WB-2, not automatic: Tinn art is colour; current tint wants
+   monochrome).
+
+================================================================================
+2. USER
+================================================================================
+**Intensive** classroom: the student writes in CudaText and **stays**.
+They do not only send code — they inspect the identifier under the
+caret (`print` / `str` / `plot` / `help`) and reset the session
+(`CLEAR` / `graphics.off` / `rm`) **without** Alt-Tab to STATghost.
+Console / Plot / Explorer **open in SG**; the **trigger** lives on the
+plugin bar. Send/Source/Inspect/Clear extras belong in a **dropdown**,
+not only behind Config.
+
+================================================================================
+3. MODEL (DECIDED for this first approach)
+================================================================================
+A) **Essential IN** (Tinn families the plugin already covers):
+
+  | Tinn-R_D TBRMain              | Plugin                          |
+  |-------------------------------|---------------------------------|
+  | Echo (toggle)                 | OUT (collapse lives in Config)  |
+  | Send File                     | Source (`.paths[4]`)            |
+  | Send Selection / Smart        | Send (statement / selection)    |
+  | Send Block / Contiguous / Line| OUT (Line already gone in EB-1) |
+  | Cursor→BOL/EOL, line→top/EOF  | Above / Below (ranges)          |
+  | Chunk prev/current/next       | **one** sniper chunk Send       |
+  | Knitr / Sweave / Noweb        | **IN classroom** — §3.F / WB-4  |
+  | Workdir get/set/choose        | setwd (file); getwd = extra     |
+  | ls / print / head/tail / plot | **IN** Inspect▾ — §3.G / WB-5   |
+  | names / str / help(selected)  | **IN** Inspect▾                 |
+  | edit() / fix() / example()    | OUT (R editor / focus steal)    |
+  | Clear console                 | Clear (`#. STATGHOST:CLEAR`)    |
+  | graphics.off / rm / clear all | **IN** Clear▾ — §3.G / WB-5     |
+  | Escape {ESC}                  | OUT (Rgui; interrupt ≠ EVAL)    |
+  | R start/close (Term/Gui/Host) | Start/Quit **STATghost**        |
+  | Packages / TCP / completion   | OUT                             |
+
+B) **Nests (Cuda toolbar)** — click = parent; arrow = children:
+
+  Send▾     Function, Above, Below, Chunk
+  Source▾   Src sel/fn, setwd
+  Inspect▾  ls, str, names, plot, help(?), head, tail
+              (parent click = print the word under the caret)
+  Clear▾    graphics.off, rm(list=ls()), clear all
+              (parent click = `#. STATGHOST:CLEAR`)
+
+  Default top-level (WB-5):
+    Config | Arm/Idle | Start/Quit | Send▾ | Source▾ | Inspect▾ | Clear▾
+
+C) **Side tab:** **expanded** list (captions; one column; no wrap when
+   the panel widens). Same ids / relative order as the bar. No arrow.
+
+D) **Assign / pipe / Outline:** EB-1b extras, **not** on TBRMain. Stay
+   opt-in flats (Config). Insert nest = VP-WB-3.
+
+E) **Plugin icons (VP-WB-1):** keep `png/16px|24px|32px` tintable set.
+   Tinn extracts → `plugins/cudatext/w_todo/icons/` as reference / WB-2 candidate.
+
+--------------------------------------------------------------------------------
+3.F Rnoweb / Sweave / knitr — DECIDED (2026-08-16 revision)
+--------------------------------------------------------------------------------
+Nothing in the EB-0 contract blocks Rnoweb. STATghost evaluates **R**
+(the armed engine). Send of an R selection / statement / chunk **already
+works** inside a `.Rnw` / `.Rmd` (the student sends the code; SG
+interprets).
+
+**Three options — copy the Tinn-R_D cut** (real TBRMain captions;
+  `actR_Send_Knit_PDF` is *Knit to LaTeX*, **not** `knit2pdf()`):
+
+  | Button (Tinn / plugin)        | Extension         | EVAL in SG                         | Artefact → CudaText       |
+  |-------------------------------|-------------------|------------------------------------|---------------------------|
+  | **Sweave**                    | `.Rnw`            | `Sweave('file.Rnw')`               | `.tex`                    |
+  | **Knit (LaTeX)**              | `.Rnw`            | `require(knitr); knit('…Rnw')`     | `.tex`                    |
+  | **Knit (HTML)**               | `.Rmd` / `.Rhtml` | `require(knitr); knit2html('…')`   | `.html` (+ `.md` if Rmd)  |
+
+Wrong extension → refuse with status (like Tinn: beep + message), **do
+not** send. Do not merge the two Knit actions: engine (`Sweave` vs
+`knit` vs `knit2html`) and product (LaTeX vs HTML) differ.
+
+**Companion role (owner):** the plugin is **more** interesting here:
+
+  1. **SG** interprets the EVAL above → Console echo.
+  2. The **artefact** opens in **CudaText**.
+  3. **Compile** `.tex` (pdfLaTeX / LuaTeX) or handle `.html` belongs to
+     the **editor**. Do not embed TeX in STATghost.
+
+The `knit2pdf` OUT does **not** remove any of the three buttons: Tinn's
+“Knit PDF” **already** is `knit()` → `.tex`. `knit2pdf()` would be a
+**fourth** shortcut (R runs pdflatex) — *that* duplicates step 3. Out
+until an explicit GO.
+
+Today, without a button: the student sends the EVAL by hand.
+`source(.paths[4])` replaces **none** of the three — the slot is
+`file.R`.
+
+WB-4 (RECORD): Weave▾ nest with the **three** entries; after EVAL OK,
+`file_open` the artefact. Noweb `<<>>=` chunks ≠ `#`/blank sniper —
+later extra.
+
+--------------------------------------------------------------------------------
+3.G R control — DECIDED (owner review 2026-08-16)
+--------------------------------------------------------------------------------
+Native chrome already says: *send and host commands stay in the editor
+so the classroom does not bounce to STATghost*. The first WORKBAR cut
+parked ls/str/plot under “Explorer”; that **misses the comfort**.
+
+The **SG** Explorer remains the place to *browse* the environment. What
+Tinn gives — and the plugin should give — is an **EVAL shortcut** from
+the word under the caret, **CudaText still active**:
+
+  | Button             | Tinn index | EVAL / command                          |
+  |--------------------|-------------|-----------------------------------------|
+  | Print (parent)     | 15          | identifier (Tinn Content)               |
+  | ls                 | 14          | `ls()`                                  |
+  | Head / Tail        | 235 / 234   | `head(x)` / `tail(x)`                   |
+  | Plot               | 253         | `plot(x)` → **SG** Plot pane            |
+  | Names / Str        | 16 / 17     | `names(x)` / `str(x)`                   |
+  | Help (selected)    | 27          | `help(x)` (`::` package as in Tinn)     |
+  | Clear (parent)     | (already)   | `#. STATGHOST:CLEAR`                    |
+  | Close graphics     | 21          | `graphics.off()`                        |
+  | Remove objects     | 22          | `rm(list=ls())`                         |
+  | Clear all          | 23          | CLEAR + `rm(list=ls()); graphics.off()` |
+
+No identifier (actions that need `x`): refuse with status, **do not**
+send. No Plot / Explorer / ls-browser widget in CudaText.
+
+**Out of the first cut (useful in Tinn, wrong in the companion):**
+  `edit()` / `fix()` — R data editor, steals focus;
+  `{ESC}` — was Rgui, not EVAL (SG interrupt = later VP);
+  `example()` / open example / `help.start`;
+  Packages / require / library (Tinn submenu);
+
+Glyphs 14–17, 21–23, 27, 234, 235, 253: `png/` 16/24/32, **no tint**.
+Tinn `clear_console` (20) stays in the stash (plugin Clear already has
+Flaticon). Buttons = VP-WB-5 until GO.
+
+================================================================================
+4. IN / OUT
+================================================================================
+IN (WB-1):
+  - Send / Source nests on the toolbar; default show includes children.
+  - Expanded side tab; Plugins menu intact; hotkeys intact.
+  - Host-free tests (`test_unit.py`).
+
+IN (WB-2, stash + colour subsets in the plugin):
+  - Extract essential `imlTinnR` indexes into `plugins/cudatext/w_todo/icons/`.
+  - **Rnoweb:** sweave (266) and knit (277; knit-html alias) in
+    `plugins/cudatext/cuda_statghost/png/{16,24,32}px/`, **no** tint.
+  - **R-control (first cut):** ls/print/head/tail/names/str/plot/
+    help_selected/close_graphics/remove_objects/clear_all — same,
+    **no** tint. Tinn clear_console (20) stash only.
+
+IN (WB-4, after GO):
+  - Three actions, as in Tinn (extension + distinct EVAL):
+    Sweave `.Rnw` → `Sweave()` → open `.tex`;
+    Knit LaTeX `.Rnw` → `knit()` → open `.tex`;
+    Knit HTML `.Rmd`/`.Rhtml` → `knit2html()` → open `.html`.
+  - Refuse if the extension does not match. Compile `.tex` = CudaText.
+  - Weave▾ nest (not one generic Knit).
+
+IN (WB-5, GO 2026-08-16):
+  - Inspect▾ + Clear▾ (§3.G). Parent click = print / CLEAR.
+  - Word under the caret (`rword.py`; Tinn `fFindWord_Extended` lite);
+    refuse if empty (wrappers require an identifier).
+  - Clear all: CLEAR on the clip, 450 ms later EVAL
+    `rm(list=ls()); graphics.off()`.
+  - Result in **SG** Console/Plot; CudaText stays active.
+
+OUT (permanent in this SAP):
+  - Import all of TBRMain.
+  - REPL / Explorer / Plot **widgets** in CudaText (EVAL shortcuts ≠ clone).
+  - CODE in Tinn-R_D from here.
+  - Bring Send Line back.
+  - Replace the tintable Flaticon set with colour Tinn glyphs in the
+    same VP (theme contrast breaks).
+  - `knit2pdf()` / a TeX engine **inside** STATghost (Tinn's 3 buttons
+    already stop at `.tex`/`.html`; compile = CudaText).
+  - `source(.paths[4])` as a stand-in for Sweave/knit of `.Rnw`.
+  - A single Knit button that ignores `.Rnw` vs `.Rmd`/`.Rhtml`.
+  - `edit()` / `fix()` / `{ESC}` / example / Packages in the first cut.
+
+================================================================================
+5. RISKS
+================================================================================
+ - Confusing Start/Quit STATghost with Rterm/Rgui/RHost.
+ - gtk2 nest: `BTN_SET_MENU` + `BTN_SET_ARROW` (PopupDropdown) — lab TF
+   on Windows **and** Linux.
+ - Wider default show: empty ini gains nest extras; old six-key ini has
+   no arrow (document).
+ - Colour Tinn glyphs vs `icons.py` tint.
+ - Theme UI → reload_icons → TOOLBAR_UPDATE → theme again (flicker /
+   TDR). Guard `_icons_busy` + skip if the signature did not change.
+ - Config: 26 TCheckBox in a TGroupBox paint too hard on a weak GPU —
+   one `checklistbox` in a compact (560px) dialog.
+ - Confusing Sweave/knit (R in SG) with LaTeX compile (CudaText).
+ - `source(file.R)` of a `.Rnw` buffer (noweb is not R source).
+ - Confusing a `plot(x)` shortcut (EVAL) with a Plot pane in CudaText.
+ - `rm(list=ls())` with no confirm — it **wipes** the workspace; Tinn
+   does not ask either (keep; document the hint).
+
+================================================================================
+6. NEXT STEPS
+================================================================================
+ 1. Lab TF WB-1 (restart CudaText; Send/Source arrows).
+ 2. VP-WB-2 Send-glyph *swap*: only with GO if the stash looks right.
+ 3. VP-WB-3 Insert▾ — RECORD.
+ 4. VP-WB-4 Rnoweb — RECORD until GO.
+ 5. VP-WB-5 Inspect▾ / Clear▾ — GO+CODE; lab TF after CudaText restart.
+
+================================================================================
+JOURNAL
+================================================================================
+  2026-08-16  Owner: w_todo folder + SAP/CPR from TBRMain; essential;
+              nested; 24/32 from Tinn 16px. GO VP-WB-1. Tinn-R_D `work`
+              `6126062`. Plugin nests in chrome.py.
+  2026-08-16  Owner: Rnoweb knit/sweave is **not** blocked; SG
+              interprets, CudaText opens and compiles. §3.F + VP-WB-4
+              RECORD. Fixed the OUT «Knitr = not STATghost».
+              Three Tinn buttons (Sweave / Knit LaTeX .Rnw / Knit HTML
+              .Rmd|.Rhtml); internal `Knit_PDF` = `knit()`, not knit2pdf.
+  2026-08-16  Owner: TBRMain R-control **is** intensive-classroom comfort
+              (inspect/wipe SG without Alt-Tab). §3.G + VP-WB-5 RECORD.
+              Glyphs 14–17, 21–23, 27, 234/235, 253 → png/ 16/24/32, no
+              tint. edit/fix/ESC/example/Packages out of the first cut.
+  2026-08-16  Owner: **GO VP-WB-5**. Inspect▾ / Clear▾ in chrome
+              (`rword.py` + EVAL). Colour glyphs, no tint. No Explorer/
+              Plot widget in CudaText.
+  2026-08-16  GPU: Windows rebooted itself (TDR). Config now uses a
+              `checklistbox`; reload_icons guarded + skip. Not a remote
+              reboot.
+  2026-08-16  Side tab: wrap put ls()/str() on one row. One vertical
+              column (`TOOLBAR_SET_VERTICAL`, wrap off); order =
+              expanded main toolbar.
+
+================================================================================
+END SAP workbar
+================================================================================

@@ -15,16 +15,17 @@ not a REPL+Explorer bundle (D29).
 
 | Path | Role |
 |------|------|
-| `shared/` | Universal contract (menu, workbar, `#. STATGHOST:` protocol) |
-| `cudatext/cuda_statghost/` | CudaText host plugin (VP-EB-1 + workbar) |
-| `vscode/` | Next host (VS Code / Cursor) — folder reserved; no CODE yet |
+| `shared/` | Universal contract (menu, workbar, protocol, glyphs) |
+| `shared/png/` | Same chrome/brand glyphs for every host |
+| `plugins/` | Parent folder — one subfolder per host plugin |
+| `plugins/cudatext/` | CudaText host (CODE, install, TF, workbar SAP) |
+| `plugins/vscode/` | Next host (VS Code / Cursor) — folder reserved; no CODE yet |
 | `lexer-dev/` | Workshop LCF packs |
 | `lexer/` | Promoted packs (CudaText `data/lexlib` + STATghost Console via build) |
 | `docs/` | Notes + optional sync into STATghost `_out/lexer` |
-| `w_todo/` | WORKBAR SAP/CPR (VP-WB-*) |
 
 The folder name on disk is the host; the menu caption is always
-**STATghost**. Further hosts (`notepadpp/`, …) land only with GO.
+**STATghost**. Further hosts (`plugins/notepadpp/`, …) land only with GO.
 
 ## CudaText (Linux lab)
 
@@ -38,8 +39,8 @@ its multi-line body — RStudio Ctrl+Enter idea). After a successful
 send, the caret advances to the next code line and **stops**.
 
 ```bash
-bash cudatext/install_lab.sh
-# or: CUDA_ROOT=/path/to/CudaText bash cudatext/install_lab.sh
+bash plugins/cudatext/install_lab.sh
+# or: CUDA_ROOT=/path/to/CudaText bash plugins/cudatext/install_lab.sh
 ```
 
 Restart CudaText (`cuda_jcf/run.sh`) after plugin changes (Python is
@@ -55,8 +56,8 @@ sent twice without a clipboard change is skipped (same as a human Copy).
 
 Do **not** embed a REPL inside CudaText.
 
-TF: `bash cudatext/run_tf.sh` (unit + functional + production).
-Workbar battery: `python3 cudatext/cuda_statghost/test_workbar.py`.
+TF: `bash plugins/cudatext/run_tf.sh` (unit + functional + production).
+Workbar battery: `python3 plugins/cudatext/cuda_statghost/test_workbar.py`.
 
 ## Relationship
 
@@ -66,8 +67,8 @@ statghost-plugins/lexer   ← canonical packs
         ├─→ CudaText data/lexlib
         └─→ STATghost src/build.ps1 → src/_out/lexer/
 
-statghost-plugins/cudatext/cuda_statghost
-        └─→ CudaText app/py/cuda_statghost  (symlink via cudatext/install_lab.sh)
+statghost-plugins/plugins/cudatext/cuda_statghost
+        └─→ CudaText app/py/cuda_statghost  (symlink via plugins/cudatext/install_lab.sh)
 ```
 
 STATghost source keeps **only** `lexer/README.txt` (no LCF duplicates;

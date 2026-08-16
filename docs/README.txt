@@ -2,7 +2,7 @@ docs/ — companion notes (STATghost-plugins)
 ===========================================
 
 SAP/CPR bridges: STATghost `w_todo` packs 16/17 · D29.
-Plugin WORKBAR (this repo): `w_todo/` packs 01/02 · VP-WB-*
+Plugin WORKBAR (CudaText host): `plugins/cudatext/w_todo/` packs 01/02 · VP-WB-*
   (Tinn-R_D TBRMain analogue; essential nests).
 
 Canonical packs: `../lexer-dev/` → `../lexer/`.
