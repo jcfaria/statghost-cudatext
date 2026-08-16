@@ -27,12 +27,12 @@ import paths  # noqa: E402
 import protocol  # noqa: E402
 import rword  # noqa: E402
 
-SAMPLE = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'statghost', 'sample'))
+_SG = host.sibling_dir('statghost') or ''
+SAMPLE = os.path.join(_SG, 'sample') if _SG else ''
 SAMPLE_R = os.path.join(SAMPLE, 'R')
 HELLO = os.path.join(SAMPLE_R, '01_hello.R')
-CUDA_EXE = os.path.normpath(os.path.join(
-    HERE, '..', '..', '..', 'CudaText', 'app', 'cudatext.exe',
-))
+_CUDA = host.sibling_dir('CudaText') or ''
+CUDA_EXE = os.path.join(_CUDA, 'app', 'cudatext.exe') if _CUDA else ''
 POLL_S = 0.12
 EVAL_WAIT_S = 18.0
 _WIN = sys.platform.startswith('win')

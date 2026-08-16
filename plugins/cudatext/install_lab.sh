@@ -8,7 +8,14 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_SRC="$HERE/cuda_statghost"
 CUDA_ROOT="${CUDA_ROOT:-}"
 if [[ -z "$CUDA_ROOT" ]]; then
-  CUDA_ROOT="$(cd "$HERE/../../../CudaText" 2>/dev/null && pwd || true)"
+  cur="$HERE"
+  for _ in 1 2 3 4 5 6; do
+    cur="$(cd "$cur/.." && pwd)"
+    if [[ -d "$cur/CudaText/app/py" ]]; then
+      CUDA_ROOT="$cur/CudaText"
+      break
+    fi
+  done
 fi
 
 if [[ -z "${CUDA_ROOT}" || ! -d "$CUDA_ROOT/app/py" ]]; then

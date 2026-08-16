@@ -22,6 +22,7 @@ import chrome_show  # noqa: E402
 import outline  # noqa: E402
 import ranges  # noqa: E402
 import rword  # noqa: E402
+import host  # noqa: E402
 
 
 def _lines(text):
@@ -578,10 +579,11 @@ def _sample_root():
     env = os.environ.get('STATGHOST_SAMPLE')
     if env and os.path.isdir(env):
         return env
-    here = os.path.dirname(os.path.abspath(__file__))
-    cand = os.path.abspath(os.path.join(here, '..', '..', '..', 'statghost', 'sample'))
-    if os.path.isdir(os.path.join(cand, 'R')):
-        return cand
+    root = host.sibling_dir('statghost')
+    if root:
+        cand = os.path.join(root, 'sample')
+        if os.path.isdir(os.path.join(cand, 'R')):
+            return cand
     return None
 
 
@@ -684,6 +686,18 @@ class TestSampleExtracts(unittest.TestCase):
                     fails.append('%s L%s %s: %s' % (fname, y, mode, e.msg))
         self.assertGreater(n, 50)
         self.assertEqual(fails, [], '\n'.join(fails))
+
+
+class TestSiblingDir(unittest.TestCase):
+    def test_finds_statghost_sample(self):
+        root = host.sibling_dir('statghost')
+        self.assertTrue(root)
+        self.assertTrue(os.path.isdir(os.path.join(root, 'sample', 'R')))
+
+    def test_sibling_exe_under_statghost(self):
+        root = host.sibling_dir('statghost')
+        exe = host._sibling_exe()
+        self.assertTrue(exe.startswith(root))
 
 
 if __name__ == '__main__':

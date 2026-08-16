@@ -215,10 +215,8 @@ class TestFunctionalLive(unittest.TestCase):
 
     def test_06_extract_sample_statement_then_eval(self):
         """Caret-style extract from sample 01, then a safe live eval of 1+1."""
-        sample = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), '..', '..', '..',
-            'statghost', 'sample', 'R', '01_hello.R',
-        ))
+        root = host.sibling_dir('statghost')
+        sample = os.path.join(root, 'sample', 'R', '01_hello.R') if root else ''
         if not os.path.isfile(sample):
             self.skipTest('sample 01_hello.R not found')
         with open(sample, encoding='utf-8') as fh:

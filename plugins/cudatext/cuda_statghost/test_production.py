@@ -26,9 +26,8 @@ sys.path.insert(0, HERE)
 import host  # noqa: E402
 import protocol  # noqa: E402
 
-SAMPLE = os.path.abspath(os.path.join(
-    HERE, '..', '..', '..', 'statghost', 'sample',
-))
+_SG = host.sibling_dir('statghost') or ''
+SAMPLE = os.path.join(_SG, 'sample') if _SG else ''
 SAMPLE_R = os.path.join(SAMPLE, 'R')
 SAMPLE_PY = os.path.join(SAMPLE, 'Python')
 KEYS_JSON = os.path.expanduser('~/.config/cudatext/settings/keys.json')

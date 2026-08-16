@@ -48,12 +48,31 @@ def _configured_exe():
         return ''
 
 
-def _sibling_exe():
-    """Companion plugins/cudatext/cuda_statghost → ../statghost/src/_out/<exe>."""
+def sibling_dir(name):
+    """Walk up from this file until a sibling directory *name* exists.
+
+    realpath() so a CudaText symlink install still starts in this repo.
+    Depth is not hardcoded — survives plugins/<host>/ nesting.
+    """
     here = os.path.dirname(os.path.realpath(__file__))
-    return os.path.normpath(os.path.join(
-        here, '..', '..', '..', '..', 'statghost', 'src', '_out', exe_name()
-    ))
+    cur = here
+    for _ in range(8):
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            break
+        cand = os.path.join(parent, name)
+        if os.path.isdir(cand):
+            return os.path.abspath(cand)
+        cur = parent
+    return None
+
+
+def _sibling_exe():
+    """Companion repo → sibling statghost/src/_out/<exe>."""
+    root = sibling_dir('statghost')
+    if not root:
+        return ''
+    return os.path.join(root, 'src', '_out', exe_name())
 
 
 def find_exe(ignore_ini=False):
