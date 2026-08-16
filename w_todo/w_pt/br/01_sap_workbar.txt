@@ -1,0 +1,140 @@
+================================================================================
+SAP -- Plugin CudaText: barra de trabalho (Tinn-R_D → chrome)
+================================================================================
+Estado: VP-WB-1 GO+CODE (ninhos essenciais); VP-WB-2 stash de glifos;
+  VP-WB-3 REGISTO
+Atualizado: 2026-08-16
+Prioridade: compactar a barra do plugin sem inchamento Tinn
+Branch CODE: `work` (este companion `jcfaria/statghost-cudatext`)
+Origem: Tinn-R_D `TBRMain` (ufrmMain.dfm, Toolbar2000) + pedido dono
+  2026-08-16 (essencial, aninhado, ícones 16→24/32)
+CPR: 02_cpr_workbar.txt (VP-WB-*)
+Relacionados: STATghost packs 16/17 · D29 (EDITOR-BRIDGE); VP-EB-1 / EB-1b
+  já BOK no plugin. **Não** fundir com Explorer / GEOM (14/15).
+Decisões: D29 [P] (receiver; plugins finos; Tinn read-only)
+Siglas: WORKBAR, VP-WB, TBRMain
+EN twin: ../../w_en/01_sap_workbar.txt
+Skill: `.cursor/skills/sap-cpr-workbar/SKILL.md`
+Referência: `C:\Users\jcfaria\Documents\GitHub\Tinn-R_D` branch `work`
+  HEAD `6126062` (pull 2026-08-16)
+
+**LEMA:** Keep this project as simple and effective as possible!
+
+================================================================================
+0. NOME E ÂMBITO
+================================================================================
+Adaptar **só o essencial** da barra R do Tinn-R_D (`TBRMain`) para o
+chrome nativo do plugin (`chrome.py` / barra principal CudaText).
+
+STATghost continua **receptor**. O plugin **não** importa Explorer,
+Packages, Knitr, Rterm/Rgui/RHost, TCP, Plot, ls/str/print.
+
+Umbrella: **WORKBAR**. Extensão de VP-EB-1b, não um segundo chrome.
+
+================================================================================
+1. OBJETIVO
+================================================================================
+ - Compactar a barra: botões **aninhados** para tarefas afins
+   (padrão TTBSubmenuItem: Chunk, Workdir, Knitr, R start/close).
+ - Manter clique no pai = acção primária de aula (Send / Source).
+ - Não clonar a TBRMain inteira.
+ - Ícones: plugin já tem 16/24/32 tintáveis (Flaticon). Tinn = 16px
+   em `imlTinnR` (TPngImageList no DFM) — extrair o subconjunto útil
+   e gerar 24/32 para o **stash** `w_todo/icons/` (troca no plugin =
+   VP-WB-2, não automática: glifos Tinn são a cores, o tint actual
+   espera monocromático).
+
+================================================================================
+2. USUÁRIO
+================================================================================
+Aula: aluno escreve no CudaText; envia selecção/statement para STATghost
+Armed. A barra do plugin tem de caber ao lado da toolbar Cuda sem 15
+botões planos. Extras de Send/Source ficam no **útil** (seta), não
+escondidos só no Config.
+
+================================================================================
+3. MODELO (DECIDIDO nesta abordagem)
+================================================================================
+A) **Essencial IN** (famílias Tinn que o plugin já cobre):
+
+  | Tinn-R_D TBRMain              | Plugin                          |
+  |-------------------------------|---------------------------------|
+  | Echo (toggle)                 | OUT (collapse vive no Config)   |
+  | Send File                     | Source (`.paths[4]`)            |
+  | Send Selection / Smart        | Send (statement / selecção)     |
+  | Send Block / Contiguous / Line| OUT (Line já saiu em EB-1)      |
+  | Cursor→BOL/EOL, line→top/EOF  | Above / Below (ranges)          |
+  | Chunk prev/current/next       | **um** Send sniper chunk        |
+  | Knitr / Sweave / Noweb        | OUT (não é STATghost)           |
+  | Workdir get/set/choose        | setwd (directório do ficheiro)  |
+  | ls / print / plot / str / fix | OUT → Explorer STATghost        |
+  | Clear console                 | Clear (`#. STATGHOST:CLEAR`)    |
+  | Graphics / remove objects     | OUT                             |
+  | R start/close (Term/Gui/Host) | Start/Quit **STATghost**        |
+  | Packages / TCP / completion   | OUT                             |
+
+B) **Ninhos (toolbar Cuda)** — clique = pai; seta = filhos:
+
+  Send▾    Function, Above, Below, Chunk
+  Source▾  Src sel/fn, setwd
+
+  Default top-level:
+    Config | Arm/Idle | Start/Quit | Send▾ | Source▾ | Clear
+
+C) **Aba lateral:** lista **expandida** (captions; espaço vertical).
+   Mesmos ids / ordem relativa. Sem seta.
+
+D) **Assign / pipe / Outline:** extras EB-1b, **não** estão na TBRMain.
+   Continuam opt-in planos (Config). Ninho Insert = VP-WB-3.
+
+E) **Ícones no plugin (VP-WB-1):** manter `png/16px|24px|32px` tintáveis.
+   Tinn extraído → `w_todo/icons/` só como referência / candidato WB-2.
+
+================================================================================
+4. IN / OUT
+================================================================================
+IN (WB-1):
+  - Ninhos Send / Source no toolbar; default show inclui os filhos.
+  - Aba expandida; Plugins menu intacto; hotkeys intactos.
+  - Testes sem host Cuda (`test_unit.py`).
+
+IN (WB-2, stash nesta tarefa; swap plugin só com GO extra):
+  - Extrair 16px essenciais de `imlTinnR` (índices 2, 4, 12, 13, 20,
+    36, 271, 372–375) e gerar 24/32 nearest/`PIL`.
+
+OUT (permanente neste SAP):
+  - Importar TBRMain completa.
+  - REPL / Explorer / Plot / Packages no CudaText.
+  - CODE em Tinn-R_D a partir daqui.
+  - Send Line de volta.
+  - Trocar o set Flaticon tintável por glifos a cores Tinn no mesmo VP
+    (contraste/tema quebram).
+
+================================================================================
+5. RISCOS
+================================================================================
+ - Confundir Start/Quit STATghost com Rterm/Rgui/RHost.
+ - Ninho gtk2: `BTN_SET_MENU` + `BTN_SET_ARROW` (PopupDropdown) — TF lab
+   no Windows **e** Linux.
+ - Default show mais largo: ini vazio ganha extras no ninho; ini antigo
+   com seis chaves fica sem seta (documentar).
+ - Glifos Tinn a cores vs tint `icons.py`.
+
+================================================================================
+6. PRÓXIMOS PASSOS
+================================================================================
+ 1. VP-WB-1 CODE + TF unitário (este GO).
+ 2. Lab: restart CudaText; seta Send/Source; aba ainda lista filhos.
+ 3. VP-WB-2 swap de glifos: só com GO se o stash agradar.
+ 4. VP-WB-3 Insert▾ — REGISTO.
+
+================================================================================
+JORNAL
+================================================================================
+  2026-08-16  Dono: pasta w_todo + SAP/CPR da TBRMain; essencial;
+              aninhado; 24/32 a partir de 16px Tinn. GO VP-WB-1.
+              Tinn-R_D `work` `6126062`. Plugin ninhos em chrome.py.
+
+================================================================================
+FIM SAP workbar
+================================================================================

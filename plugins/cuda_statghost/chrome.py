@@ -16,7 +16,9 @@ from cudatext import BTN_SET_ENABLED
 from cudatext import BTN_SET_HINT
 from cudatext import BTN_SET_IMAGEINDEX
 from cudatext import BTN_SET_IMAGELIST
+from cudatext import BTN_SET_ARROW
 from cudatext import BTN_SET_KIND
+from cudatext import BTN_SET_MENU
 from cudatext import BTN_SET_TEXT
 from cudatext import BTN_SET_VISIBLE
 from cudatext import BTNKIND_ICON_ONLY
@@ -36,6 +38,8 @@ from cudatext import LISTBOX_ADD
 from cudatext import LISTBOX_DELETE_ALL
 from cudatext import LISTBOX_SET_ITEM_H
 from cudatext import LISTBOX_THEME
+from cudatext import MENU_ADD
+from cudatext import MENU_CREATE
 from cudatext import MENU_ENUM
 from cudatext import MENU_REMOVE
 from cudatext import PROC_GET_MAIN_TOOLBAR
@@ -86,8 +90,9 @@ TICK_MS = 2000
 # Same left-to-right as FormMain (Settings → Arm → Kill). Panel /
 # Explorer / OnTop stay in STATghost. Clear Console is here (owner).
 #
-# GOLDEN RULE — side tab uses the exact same action order as the toolbar
-# (separators skipped). Never invent a second sequence.
+# GOLDEN RULE — same action ids / same relative order on toolbar and
+# side tab. Toolbar nests related extras under Send / Source (Tinn
+# TBRMain analogue); side tab stays expanded (vertical captions).
 _TB = (
     ('sep', '-', None, None),
     ('cfg', 'STATghost plugin Config', 'config', 'setting-lines.png'),
@@ -101,9 +106,9 @@ _TB = (
     ('chunk', 'Send sniper chunk', 'send_chunk', 'chunk.png'),
     ('source', 'Source file via .paths[4]', 'send_file', 'export.png'),
     ('srcsel', 'Source selection / function via .paths[5]', 'source_selection', 'source-sel.png'),
+    ('setwd', 'setwd to file directory', 'set_wd_here', 'setwd.png'),
     ('clear', 'Clear STATghost Console', 'clear_console', 'clear.png'),
     ('sep_edit', '-', None, None),
-    ('setwd', 'setwd to file directory', 'set_wd_here', 'setwd.png'),
     ('assign', 'Insert <-', 'insert_assign', 'assign.png'),
     ('pipe', 'Insert pipe', 'insert_pipe', 'pipe.png'),
     ('outline', 'Document outline', 'show_outline', 'outline.png'),
@@ -133,8 +138,12 @@ _SIDE = tuple(
 )
 
 
-def _tb_rows_now():
+def _tb_rows_full():
     return chrome_show.filter_toolbar_rows(_TB, prefs.get_chrome_show())
+
+
+def _tb_rows_now():
+    return chrome_show.collapse_nested_rows(_tb_rows_full())
 
 
 def _tb_names_now():
@@ -212,6 +221,7 @@ class Chrome:
         self._armed = False
         self._was_running = False
         self._btns = {}
+        self._nest_menus = []
         self._icons = {}
         self._imglist = None
         self._h_dlg = None
@@ -362,6 +372,9 @@ class Chrome:
 
     def _create_toolbar(self, h_bar):
         self._btns = {}
+        self._nest_menus = []
+        methods = {row[0]: row[2] for row in _TB if row[2] is not None}
+        show = prefs.get_chrome_show()
         for name, hint, method, icon in _tb_rows_now():
             h_btn = toolbar_proc(h_bar, TOOLBAR_ADD_ITEM)
             if h_btn is None:
@@ -381,7 +394,36 @@ class Chrome:
                 h_btn, BTN_SET_DATA1,
                 'module=cuda_statghost;cmd=' + method + ';',
             )
+            self._attach_nest_menu(h_btn, name, methods, show)
             self._btns[name] = h_btn
+
+    def _attach_nest_menu(self, h_btn, name, methods, show):
+        """Tinn-style nested extras: click = parent, arrow = related cmds."""
+        kids = chrome_show.nest_menu_keys(name, show)
+        if not kids:
+            return
+        try:
+            h_menu = menu_proc(0, MENU_CREATE)
+        except Exception:
+            return
+        if not h_menu:
+            return
+        for kid in kids:
+            method = methods.get(kid)
+            if not method:
+                continue
+            cap = _SIDE_CAP.get(kid, kid)
+            menu_proc(
+                h_menu, MENU_ADD,
+                command='module=cuda_statghost;cmd=' + method + ';',
+                caption=cap,
+            )
+        try:
+            button_proc(h_btn, BTN_SET_MENU, h_menu)
+            button_proc(h_btn, BTN_SET_ARROW, True)
+        except Exception:
+            return
+        self._nest_menus.append(h_menu)
 
     def _drop_plugin_buttons(self, h_bar):
         """Drop every plugin-tagged button (old order, leftover Line, seps)."""

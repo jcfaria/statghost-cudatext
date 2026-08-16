@@ -1,0 +1,95 @@
+================================================================================
+CPR -- Plugin CudaText workbar (VP-WB-1..3; Tinn-R_D TBRMain)
+================================================================================
+Estado: VP-WB-1 GO+CODE; VP-WB-2 stash (sem swap no plugin); VP-WB-3 REGISTO
+Atualizado: 2026-08-16
+Ordem: depois de VP-EB-1 / EB-1b (chrome nativo já existe). Não reutilizar
+  ids STATG / VP-EB / VP-EX / VP-GEOM.
+Prefixo: **VP-WB-*** (umbrella WORKBAR)
+SAP: 01_sap_workbar.txt
+Decisões: D29 (companion; Tinn read-only)
+EN twin: ../../w_en/02_cpr_workbar.txt
+Skill: `.cursor/skills/sap-cpr-workbar/SKILL.md`
+Política: REGISTO até GO por VP. WB-1 = GO 2026-08-16. Lema: simple and
+  effective.
+
+================================================================================
+VP-WB-1  Ninhos essenciais (Send▾ / Source▾)
+[x] GO [x] CODE [ ] TF
+================================================================================
+**GO 2026-08-16.** Recorte: compactar a barra **sem** importar TBRMain.
+
+IN:
+  - `chrome_show.NESTS`: send → function/above/below/chunk;
+    source → srcsel/setwd.
+  - DEFAULT_SHOW inclui esses filhos. Toolbar **colapsa** filhos enquanto
+    o pai está visível (`collapse_nested_rows`). Clique no pai = Send /
+    Source. Seta = menu Cuda (`MENU_CREATE` + `BTN_SET_MENU` +
+    `BTN_SET_ARROW`).
+  - Aba lateral **não** colapsa (captions).
+  - setwd move para a família Source (antes estava no grupo Edit).
+  - Plugins menu + hotkeys inalterados.
+OUT: Knitr, Packages, Explorer, Rterm/Rgui/RHost, Send Line, Insert nest.
+BOK: `python test_unit.py` verde; lab = seta Send/Source após restart.
+Dependências: EB-1 / EB-1b chrome.
+Status: GO+CODE (2026-08-16) — TF lab pendente (restart CudaText).
+Checklist TF:
+  [ ] Toolbar default: 6 top-levels; seta em Send e Source
+  [ ] Clique Send = statement/selecção; seta Function/Above/Below/Chunk
+  [ ] Clique Source = `.paths[4]`; seta Src sel + setwd
+  [ ] Aba lista os filhos (expandido)
+  [ ] Config All/None e checkboxes ainda filtram o menu
+  [ ] Sem Consola/Plot/Explorer no CudaText
+
+================================================================================
+VP-WB-2  Glifos Tinn 16px → 24/32 (stash; swap opcional)
+[x] GO [x] CODE [ ] TF
+================================================================================
+**GO 2026-08-16 (stash só).** Ícones Tinn estão em 16px (`imlTinnR`).
+Plugin **já** tem 16/24/32 Flaticon tintáveis — não substituir no mesmo
+VP que os ninhos (tinta vs cor).
+
+IN:
+  - Extrair índices essenciais do DFM para `w_todo/icons/{16,24,32}px/`.
+  - Receita: `w_todo/tools/extract_tinn_icons.py`.
+OUT: swap automático em `plugins/cuda_statghost/png/`; Explorer/Packages
+  glyphs; upscale no runtime Cuda (sem Pillow no host).
+BOK: PNG 16/24/32 no stash; README da pasta.
+Status: GO+CODE stash; **swap no plugin = GO humano extra**.
+Checklist TF:
+  [ ] 16px extraídos (índices nomeados no SAP)
+  [ ] 24 e 32 gerados ao lado
+  [ ] Plugin png/ Flaticon intacto
+
+================================================================================
+VP-WB-3  Ninho Insert (<- / pipe / Outline)
+[ ] GO [ ] CODE [ ] TF
+================================================================================
+IN: um botão Insert▾ se algum filho estiver em chrome.show.
+OUT: TOC / Tools Tinn clone; CODE Tinn-R_D.
+Status: REGISTO.
+
+================================================================================
+POLÍTICA / ORDEM
+================================================================================
+ - WB-1 → WB-2 stash → (GO extra) swap glifos → WB-3.
+ - Tinn-R_D = read-only. Pull antes de citar (dev paralelo).
+ - GEOM / Explorer / Console-frame: pointer STATghost 14/15 / 12/13.
+ - Skill `sap-cpr-workbar` é o dono destes packs.
+
+================================================================================
+JORNAL
+================================================================================
+  2026-08-16  SAP/CPR abertos; GO WB-1 ninhos; GO WB-2 stash de ícones.
+              Sem CODE em Tinn-R_D.
+
+================================================================================
+NEXT STEPS
+================================================================================
+1. Lab TF WB-1 (restart CudaText; gtk2 + Win).
+2. Olhar stash WB-2; só então GO de swap no `png/`.
+3. Sem WB-3 sem GO.
+
+================================================================================
+FIM CPR workbar
+================================================================================

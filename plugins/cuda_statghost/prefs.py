@@ -158,7 +158,7 @@ def get_chrome_show():
 
 
 def set_chrome_show(keys):
-    """Persist visible action ids (cfg,arm,host,send,source,clear)."""
+    """Persist visible action ids (cores + Send/Source nest extras)."""
     global _chrome_show_cache
     try:
         from . import chrome_show as cs

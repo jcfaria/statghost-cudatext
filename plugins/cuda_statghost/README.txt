@@ -78,18 +78,20 @@ Config (Options → Settings-plugins → STATghost → Config):
   [edit] pipe=native|magrittr — Insert pipe (Ctrl+Shift+M): `|>` or `%>%`
   [icons] fg=auto|light|dark|theme — toolbar + side-tab glyph FG
     (default auto: high contrast vs ButtonBg/TabBg; theme = raw ButtonFont)
-  [chrome] show=cfg,arm,host,send,source,clear — which control-deck
-    buttons appear on the main toolbar AND the side tab (same set /
-    same order). Config checkboxes + All/None. Extras (opt-in):
-    function, above, below, chunk, srcsel, setwd, assign, pipe, outline.
-    Empty → defaults (six core). Hidden buttons remain in Plugins menu.
+  [chrome] show=cfg,arm,host,send,function,above,below,chunk,source,srcsel,setwd,clear
+    — which control-deck actions are ON (toolbar + side, same set /
+    same relative order). Config checkboxes + All/None. Extra (opt-in):
+    assign, pipe, outline. Empty → defaults (cores + Send/Source extras).
+    Hidden actions remain in Plugins menu.
 
-Chrome (VP-EB-1b, native):
-  Default toolbar: Config | Arm/Idle | Start/Quit | Send | Source | Clear
-  GOLDEN RULE: side-tab order == toolbar order (_SIDE from _TB).
+Chrome (VP-EB-1b + VP-WB-1, native):
+  Default toolbar: Config | Arm/Idle | Start/Quit | Send▾ | Source▾ | Clear
+  Send▾ nest: Function, Above, Below, Chunk (click still = Send).
+  Source▾ nest: Src sel/fn, setwd (click still = Source file).
+  GOLDEN RULE: same action ids / same relative order (_SIDE from _TB).
+  Toolbar nests related extras; side tab stays expanded (captions).
   Visibility is one shared list (chrome.show) — never diverge bars.
-  Opt-in EB-1b: Function, Above, Below, Chunk, Src sel/fn, setwd,
-  Insert <-, Insert pipe, Outline (provisional glyphs — replaceable).
+  Opt-in: Insert <-, Insert pipe, Outline (flat; nest later).
   Send = selection, or the complete statement at caret.
   Function = enclosing function only.
   Source = whole saved file via `.path` + source(...).

@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import itertools
 import time
 
 PREFIX = '#. STATGHOST:'
@@ -22,8 +23,11 @@ CMD_QUIT = 'QUIT'
 CMD_CLEAR = 'CLEAR'
 
 
+_counter = itertools.count()
+
+
 def _nonce():
-    return str(time.time_ns())
+    return '%s-%s' % (time.time_ns(), next(_counter))
 
 
 def make_command(name):

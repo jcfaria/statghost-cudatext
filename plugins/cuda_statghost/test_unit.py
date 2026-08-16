@@ -234,6 +234,49 @@ class TestChromeShow(unittest.TestCase):
         )
         self.assertEqual(chrome_show.filter_toolbar_rows(tb, ()), ())
 
+    def test_nest_menu_keys_default(self):
+        self.assertEqual(
+            chrome_show.nest_menu_keys('send', chrome_show.DEFAULT_SHOW),
+            ('function', 'above', 'below', 'chunk'),
+        )
+        self.assertEqual(
+            chrome_show.nest_menu_keys('source', chrome_show.DEFAULT_SHOW),
+            ('srcsel', 'setwd'),
+        )
+        self.assertEqual(chrome_show.nest_menu_keys('cfg', chrome_show.DEFAULT_SHOW), ())
+
+    def test_collapse_hides_children_when_parent_shown(self):
+        tb = (
+            ('sep', '-', None, None),
+            ('cfg', 'c', 'config', 'a.png'),
+            ('sep_send', '-', None, None),
+            ('send', 's', 'send_selection', 's.png'),
+            ('function', 'f', 'send_function', 'f.png'),
+            ('chunk', 'k', 'send_chunk', 'k.png'),
+            ('source', 'o', 'send_file', 'o.png'),
+            ('srcsel', 'r', 'source_selection', 'r.png'),
+            ('setwd', 'w', 'set_wd_here', 'w.png'),
+            ('clear', 'x', 'clear_console', 'x.png'),
+        )
+        rows = chrome_show.filter_toolbar_rows(tb, chrome_show.DEFAULT_SHOW)
+        names = [r[0] for r in chrome_show.collapse_nested_rows(rows)]
+        self.assertEqual(
+            names,
+            ['sep', 'cfg', 'sep_send', 'send', 'source', 'clear'],
+        )
+        self.assertNotIn('function', names)
+        self.assertNotIn('setwd', names)
+
+    def test_collapse_keeps_orphan_child(self):
+        tb = (
+            ('sep', '-', None, None),
+            ('function', 'f', 'send_function', 'f.png'),
+            ('clear', 'x', 'clear_console', 'x.png'),
+        )
+        rows = chrome_show.filter_toolbar_rows(tb, ('function', 'clear'))
+        names = [r[0] for r in chrome_show.collapse_nested_rows(rows)]
+        self.assertEqual(names, ['sep', 'function', 'clear'])
+
     def test_side_filter(self):
         side = (
             ('cfg', 'Config', 'config', 'a.png'),
