@@ -9,29 +9,75 @@ from __future__ import annotations
 ACTION_KEYS = (
     'cfg', 'arm', 'host',
     'send', 'function', 'above', 'below', 'chunk',
-    'source', 'srcsel', 'setwd', 'clear',
+    'source', 'srcsel', 'setwd',
+    'inspect', 'ls', 'str', 'names', 'plot', 'help', 'head', 'tail',
+    'clear', 'close_graphics', 'remove_objects', 'clear_all',
     'assign', 'pipe', 'outline',
 )
-# Classroom default: six cores + Send/Source extras (compacted on the
-# main toolbar via NESTS; still listed on the side tab).
+# Classroom default: cores + Send/Source/Inspect/Clear extras (compacted
+# on the main toolbar via NESTS; still listed on the side tab).
 DEFAULT_SHOW = (
     'cfg', 'arm', 'host',
     'send', 'function', 'above', 'below', 'chunk',
     'source', 'srcsel', 'setwd',
-    'clear',
+    'inspect', 'ls', 'str', 'names', 'plot', 'help', 'head', 'tail',
+    'clear', 'close_graphics', 'remove_objects', 'clear_all',
 )
 
 # Parent → related extras. Click = parent action; arrow = children.
-# First approach only — Tinn Explorer / Packages / Knitr stay OUT.
 NESTS = (
     ('send', ('function', 'above', 'below', 'chunk')),
     ('source', ('srcsel', 'setwd')),
+    ('inspect', ('ls', 'str', 'names', 'plot', 'help', 'head', 'tail')),
+    ('clear', ('close_graphics', 'remove_objects', 'clear_all')),
 )
+
+# Command methods `-p=cuda_statghost#method` may invoke (lab / cyclic TF).
+# Config / Arm / Start-Quit stay human clicks — TDR + session safety.
+CLI_METHODS = frozenset((
+    'send_selection', 'send_function', 'send_above', 'send_below', 'send_chunk',
+    'send_file', 'source_selection', 'set_wd_here',
+    'inspect_print', 'inspect_ls', 'inspect_str', 'inspect_names',
+    'inspect_plot', 'inspect_help', 'inspect_head', 'inspect_tail',
+    'inspect_graphics_off', 'inspect_rm_all', 'inspect_clear_all',
+    'clear_console',
+))
+# Gentle cyclic live EVAL — no plot/help windows, no rm, no Config.
+CYCLE_METHODS = frozenset((
+    'send_selection', 'inspect_ls', 'inspect_print', 'inspect_str',
+    'inspect_names', 'inspect_head', 'inspect_tail', 'inspect_graphics_off',
+    'set_wd_here', 'clear_console',
+))
+
+
+def encode_checklist(show_on, keys):
+    """dlg_custom checklistbox val: `index;0,1,0,…`."""
+    bits = ['1' if show_on.get(k) else '0' for k in keys]
+    return '0;' + ','.join(bits)
+
+
+def decode_checklist(raw, keys, fallback=None):
+    """Parse checklistbox val back to {key: bool}."""
+    s = str(raw if raw is not None else '').strip()
+    if ';' in s:
+        s = s.split(';', 1)[-1]
+    parts = [p.strip() for p in s.split(',')]
+    if len(parts) < len(keys):
+        if fallback is not None:
+            return dict(fallback)
+        return {k: False for k in keys}
+    out = {}
+    for i, k in enumerate(keys):
+        out[k] = parts[i] in ('1', 'true', 'yes', 'on')
+    return out
+
 
 _GROUP_HOST = frozenset(('cfg', 'arm', 'host'))
 _GROUP_SEND = frozenset((
     'send', 'function', 'above', 'below', 'chunk',
-    'source', 'srcsel', 'setwd', 'clear',
+    'source', 'srcsel', 'setwd',
+    'inspect', 'ls', 'str', 'names', 'plot', 'help', 'head', 'tail',
+    'clear', 'close_graphics', 'remove_objects', 'clear_all',
 ))
 _GROUP_EDIT = frozenset(('assign', 'pipe', 'outline'))
 _GROUPS = (_GROUP_HOST, _GROUP_SEND, _GROUP_EDIT)
@@ -150,3 +196,15 @@ def filter_side_actions(side_rows, show_keys):
             return ()
         show = set(parse_show(','.join(keys), default=()))
     return tuple(row for row in side_rows if row[0] in show)
+
+
+def side_keys(show_keys=None):
+    """Expanded side-tab action ids: same relative order as the main toolbar."""
+    if show_keys is None:
+        wanted = set(DEFAULT_SHOW)
+    else:
+        keys = tuple(show_keys)
+        if not keys:
+            return ()
+        wanted = set(parse_show(','.join(keys), default=()))
+    return tuple(k for k in ACTION_KEYS if k in wanted)

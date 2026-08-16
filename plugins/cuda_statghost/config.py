@@ -3,7 +3,8 @@
 # dlg_custom (not dlg_proc): gtk2 TButton on_change via bound methods never
 # fired — checkbox worked, OK/Cancel painted dead. Opened from Options →
 # Settings-plugins → STATghost → Config.
-# Chrome-show block: type=group (TGroupBox) + All/None at the bottom.
+# Button list = one checklistbox (not 26 TCheckBox in a TGroupBox): that
+# GDI grid + imagelist reload could TDR a weak GPU (flicker storm).
 
 from __future__ import annotations
 
@@ -27,9 +28,8 @@ except ImportError:
 PLUGIN = 'STATghost'
 _C1 = chr(1)
 
-# Roomier classroom Config (group box + breathing room).
 _W = 500
-_H = 680
+_H = 560
 
 # Indices must match the control list below (top → bottom).
 _IDX_COLLAPSE = 0
@@ -40,8 +40,18 @@ _IDX_PIPE_LBL = 4
 _IDX_PIPE = 5
 _IDX_ICONS_LBL = 6
 _IDX_ICONS = 7
-_IDX_GROUP = 8
-_IDX_CHK0 = 9
+_IDX_LIST_LBL = 8
+_IDX_LIST = 9
+_IDX_ALL = 10
+_IDX_NONE = 11
+_IDX_EXE_LBL = 12
+_IDX_EXE = 13
+_IDX_BROWSE = 14
+_IDX_HINT = 15
+_IDX_DET = 16
+_IDX_OK = 17
+_IDX_CANCEL = 18
+
 _SHOW_DEFS = (
     ('cfg', 'Config'),
     ('arm', 'Arm/Idle'),
@@ -51,23 +61,26 @@ _SHOW_DEFS = (
     ('above', 'Above'),
     ('below', 'Below'),
     ('chunk', 'Chunk'),
-        ('source', 'Source'),
-        ('srcsel', 'Src sel/fn'),
-        ('setwd', 'setwd'),
-        ('clear', 'Clear'),
-        ('assign', 'Insert <-'),
+    ('source', 'Source'),
+    ('srcsel', 'Src sel/fn'),
+    ('setwd', 'setwd'),
+    ('inspect', 'Inspect'),
+    ('ls', 'ls()'),
+    ('str', 'str()'),
+    ('names', 'names()'),
+    ('plot', 'plot()'),
+    ('help', 'Help'),
+    ('head', 'head()'),
+    ('tail', 'tail()'),
+    ('clear', 'Clear'),
+    ('close_graphics', 'graphics.off'),
+    ('remove_objects', 'rm all'),
+    ('clear_all', 'Clear all'),
+    ('assign', 'Insert <-'),
     ('pipe', 'Insert pipe'),
     ('outline', 'Outline'),
 )
-_IDX_ALL = _IDX_CHK0 + len(_SHOW_DEFS)
-_IDX_NONE = _IDX_ALL + 1
-_IDX_EXE_LBL = _IDX_NONE + 1
-_IDX_EXE = _IDX_EXE_LBL + 1
-_IDX_BROWSE = _IDX_EXE + 1
-_IDX_HINT = _IDX_BROWSE + 1
-_IDX_DET = _IDX_HINT + 1
-_IDX_OK = _IDX_DET + 1
-_IDX_CANCEL = _IDX_OK + 1
+_SHOW_KEYS = tuple(k for k, _c in _SHOW_DEFS)
 
 _PIPE_ITEMS = ('|>  (native R 4.1+)', '%>%  (magrittr)')
 _ICONS_FG_ITEMS = (
@@ -88,11 +101,6 @@ _FALLBACK_ENCS = (
     'cp850',
     'koi8-r',
 )
-
-# Group box geometry (form coords) + client-relative children (p=btns).
-_GRP_L, _GRP_T = 12, 208
-_GRP_R, _GRP_B = 488, 478
-_BTNS_NAME = 'btns'
 
 
 def _ctl(*parts):
@@ -181,42 +189,6 @@ def _show_dict_from_prefs():
     return {key: (key in on) for key, _cap in _SHOW_DEFS}
 
 
-def _read_show_from_res(res, show_on):
-    out = dict(show_on)
-    for i, (key, _cap) in enumerate(_SHOW_DEFS):
-        idx = _IDX_CHK0 + i
-        if idx in res:
-            out[key] = _as_bool(res.get(idx))
-    return out
-
-
-def _check_grid_ctls(show_on):
-    """3-column checkbox grid inside the group (client-relative via p=)."""
-    rows = []
-    # Client width ≈ group width − padding; leave room for frame.
-    cols = (
-        (14, 152),
-        (164, 310),
-        (322, 456),
-    )
-    y0 = 28
-    row_h = 34
-    for i, (key, cap) in enumerate(_SHOW_DEFS):
-        r = i // 3
-        c = i % 3
-        x1, x2 = cols[c]
-        y1 = y0 + r * row_h
-        y2 = y1 + 28
-        rows.append(_ctl(
-            'type=check',
-            'p=' + _BTNS_NAME,
-            'cap=' + cap,
-            'val=' + ('1' if show_on.get(key) else '0'),
-            'pos=%d,%d,%d,%d' % (x1, y1, x2, y2),
-        ))
-    return rows
-
-
 def show_config():
     path = prefs.get_exe() or host.find_exe(ignore_ini=True) or ''
     collapse = prefs.get_collapse()
@@ -231,17 +203,9 @@ def show_config():
     det_cap = (
         ('Detected: ' + _short_path(detected)) if detected else ''
     )
-
-    # Below the group: executable block with clear air.
-    y_exe_lbl = _GRP_B + 24
-    y_exe = y_exe_lbl + 24
-    y_hint = y_exe + 40
-    y_det = y_hint + 24
-    y_ok = y_det + 36
+    list_caps = '\t'.join(cap for _k, cap in _SHOW_DEFS)
 
     while True:
-        # All / None sit at the bottom of the group client area.
-        y_all = 28 + 5 * 34 + 12  # after 5 checkbox rows
         ctls = [
             _ctl('type=check',
                  'cap=Send wraps as one Console line',
@@ -269,50 +233,51 @@ def show_config():
                  'items=' + '\t'.join(_ICONS_FG_ITEMS),
                  'val=' + str(icons_idx),
                  'pos=240,180,488,212'),
-            # TGroupBox — must appear before children that use p=btns.
-            _ctl('type=group',
-                 'name=' + _BTNS_NAME,
+            _ctl('type=label',
                  'cap=Toolbar / side buttons (same set)',
-                 'pos=%d,%d,%d,%d' % (_GRP_L, _GRP_T, _GRP_R, _GRP_B)),
-        ]
-        ctls.extend(_check_grid_ctls(show_on))
-        ctls.extend([
+                 'pos=12,220,488,244'),
+            _ctl('type=checklistbox',
+                 'items=' + list_caps,
+                 'val=' + chrome_show.encode_checklist(show_on, _SHOW_KEYS),
+                 'pos=12,246,488,400'),
             _ctl('type=button', 'cap=All',
-                 'p=' + _BTNS_NAME,
-                 'pos=300,%d,380,%d' % (y_all, y_all + 28)),
+                 'pos=300,408,380,436'),
             _ctl('type=button', 'cap=None',
-                 'p=' + _BTNS_NAME,
-                 'pos=392,%d,468,%d' % (y_all, y_all + 28)),
+                 'pos=392,408,488,436'),
             _ctl('type=label', 'cap=STATghost executable',
-                 'pos=12,%d,320,%d' % (y_exe_lbl, y_exe_lbl + 22)),
+                 'pos=12,448,320,470'),
             _ctl('type=edit', 'name=exe', 'val=' + path,
-                 'pos=12,%d,372,%d' % (y_exe, y_exe + 30)),
+                 'pos=12,472,372,502'),
             _ctl('type=button', 'cap=Browse…',
-                 'pos=384,%d,488,%d' % (y_exe, y_exe + 30)),
+                 'pos=384,472,488,502'),
             _ctl('type=label',
                  'cap=Empty = auto-detect. Hidden buttons stay in Plugins menu.',
-                 'pos=12,%d,488,%d' % (y_hint, y_hint + 20)),
+                 'pos=12,508,488,528'),
             _ctl('type=label', 'cap=' + det_cap,
-                 'pos=12,%d,488,%d' % (y_det, y_det + 20)),
+                 'pos=12,528,270,548'),
             _ctl('type=button', 'cap=OK',
-                 'pos=280,%d,380,%d' % (y_ok, y_ok + 30)),
+                 'pos=280,520,380,550'),
             _ctl('type=button', 'cap=Cancel', 'ex0=1',
-                 'pos=392,%d,488,%d' % (y_ok, y_ok + 30)),
-        ])
+                 'pos=392,520,488,550'),
+        ]
         text = '\n'.join(ctls)
         res = dlg_custom(PLUGIN + ' plugin', _W, _H, text, get_dict=True)
         if res is None:
             return False
         path = (res.get(_IDX_EXE) or '').strip()
         try:
-            enc_idx = int(str(res.get(_IDX_ENC) if res.get(_IDX_ENC) is not None else enc_idx))
+            enc_idx = int(str(
+                res.get(_IDX_ENC) if res.get(_IDX_ENC) is not None else enc_idx
+            ))
         except (TypeError, ValueError):
             enc_idx = _enc_index(encs, encoding)
         if enc_idx < 0 or enc_idx >= len(encs):
             enc_idx = _enc_index(encs, 'utf-8')
         encoding = encs[enc_idx]
         try:
-            pipe_idx = int(str(res.get(_IDX_PIPE) if res.get(_IDX_PIPE) is not None else pipe_idx))
+            pipe_idx = int(str(
+                res.get(_IDX_PIPE) if res.get(_IDX_PIPE) is not None else pipe_idx
+            ))
         except (TypeError, ValueError):
             pipe_idx = _pipe_index()
         if pipe_idx not in (0, 1):
@@ -327,7 +292,9 @@ def show_config():
             icons_idx = 0
         collapse = _as_bool(res.get(_IDX_COLLAPSE))
         src_echo = _as_bool(res.get(_IDX_SRC_ECHO))
-        show_on = _read_show_from_res(res, show_on)
+        show_on = chrome_show.decode_checklist(
+            res.get(_IDX_LIST), _SHOW_KEYS, fallback=show_on,
+        )
         clicked = res.get('clicked')
         if clicked == _IDX_ALL:
             show_on = {key: True for key, _c in _SHOW_DEFS}

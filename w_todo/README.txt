@@ -15,7 +15,8 @@ Numbering (elaboration order — same in every language pack):
   01_sap_workbar.txt    2026-08-16  SAP Tinn-R_D workbar → plugin chrome
                                     (D29 companion; VP-WB-*)
   02_cpr_workbar.txt    2026-08-16  CPR WORKBAR (VP-WB-1 GO; WB-2 stash;
-                                    WB-3 RECORD)
+                                    WB-3 Insert; WB-4 Rnoweb RECORD;
+                                    WB-5 R-control Inspect/Clear GO)
 
 STATghost product packs (16/17 EDITOR-BRIDGE, D29) stay in the sibling
 repo `jcfaria/statghost` `w_todo/`. This companion folder owns **plugin

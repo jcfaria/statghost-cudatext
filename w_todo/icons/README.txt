@@ -6,23 +6,39 @@ Extracted from `imlTinnR` (TPngImageList, 16×16 RGBA) in
 
   python w_todo/tools/extract_tinn_icons.py
 
-| file              | Tinn ImageIndex | TBRMain role          |
-|-------------------|-----------------|------------------------|
-| send_file         | 2               | Send file              |
-| send_selection    | 4               | Send selection         |
-| send_smart        | 12              | Smart send             |
-| workdir           | 13              | Workdir submenu        |
-| clear_console     | 20              | Clear console          |
-| set_workdir       | 36              | Set workdir (file)     |
-| send_contiguous   | 271             | Contiguous             |
-| chunk_next        | 372             | Chunk next             |
-| chunk_current     | 373             | Chunk current          |
-| chunk_previous    | 374             | Chunk previous         |
-| chunk_menu        | 375             | Chunk submenu          |
+| file              | Tinn ImageIndex | TBRMain role                      |
+|-------------------|-----------------|-----------------------------------|
+| send_file         | 2               | Send file                         |
+| send_selection    | 4               | Send selection                    |
+| send_smart        | 12              | Smart send                        |
+| workdir           | 13              | Workdir submenu                   |
+| ls                | 14              | List all objects `ls()`           |
+| print             | 15              | Print content (selected)          |
+| names             | 16              | `names(x)`                        |
+| str               | 17              | `str(x)`                          |
+| clear_console     | 20              | Clear console (stash; plugin has Flaticon) |
+| close_graphics    | 21              | `graphics.off()`                  |
+| remove_objects    | 22              | `rm(list=ls())`                   |
+| clear_all         | 23              | CLEAR + rm + graphics.off         |
+| help_selected     | 27              | `help(x)`                         |
+| set_workdir       | 36              | Set workdir (file)                |
+| get_workdir       | 70              | `getwd()`                         |
+| print_tail        | 234             | `tail(x)`                         |
+| print_head        | 235             | `head(x)`                         |
+| plot              | 253             | `plot(x)`                         |
+| send_contiguous   | 271             | Contiguous                        |
+| chunk_next        | 372             | Chunk next                        |
+| chunk_current     | 373             | Chunk current                     |
+| chunk_previous    | 374             | Chunk previous                    |
+| chunk_menu        | 375             | Chunk submenu                     |
+| sweave            | 266             | Sweave to LaTeX (.Rnw)            |
+| knit              | 277             | Knit to LaTeX (.Rnw)              |
+| knit-html         | 277 (alias)     | Knit to HTML; same pixels as knit |
 
 24px / 32px = nearest-neighbour upsample of the 16px source.
 
-These are **colour** glyphs. The plugin `png/` set is **monochrome
-tintable** (Flaticon) at 16/24/32 already. Do **not** copy into
-`plugins/cuda_statghost/png/` without an explicit GO (SAP 01 / CPR 02
-VP-WB-2 swap).
+These are **colour** glyphs. The plugin Flaticon set stays **monochrome
+tintable**. Owner GO 2026-08-16: **Rnoweb** and first-cut **R-control**
+glyphs also ship in `plugins/cuda_statghost/png/{16,24,32}px/` and skip
+tint (`chrome._COLOUR_PNG`). Remaining stash (Send families, workdir,
+clear_console, chunks) stays here until a full WB-2 swap GO.

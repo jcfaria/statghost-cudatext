@@ -2,6 +2,11 @@
 
 from cudatext import ed
 
+try:
+    from . import rword
+except ImportError:
+    import rword
+
 
 def caret_line_index():
     carets = ed.get_carets()
@@ -67,6 +72,29 @@ def advance_caret_after(from_y):
             ed.set_caret(0, y)
             return
         y += 1
+
+
+def caret_col_line():
+    """Caret column and line (0-based), or (None, None)."""
+    carets = ed.get_carets()
+    if not carets:
+        return None, None
+    x, y, _x2, _y2 = carets[0]
+    if y < 0:
+        return None, None
+    return x, y
+
+
+def r_print_target():
+    """Print target: one-line selection, else R ref at caret."""
+    x, y = caret_col_line()
+    return rword.print_target(selection_text(), line_text(y), x or 0)
+
+
+def r_wrap_target():
+    """str/names/plot/head/tail target — identifier only."""
+    x, y = caret_col_line()
+    return rword.wrap_target(selection_text(), line_text(y), x or 0)
 
 
 def skip_to_code_line(y):

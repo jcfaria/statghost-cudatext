@@ -18,20 +18,47 @@ DFM = Path(
     r'\Tinn-R\source\Tinn-R\ufrmMain.dfm'
 )
 
-# SAP 01 §3.E — essential TBRMain indexes only.
+# SAP 01 §3.E / §3.F / §3.G — TBRMain indexes. Rnoweb + first-cut
+# R-control inspect/hygiene ship into plugin png/ (colour, no tint).
 INDEXES = {
     2: 'send_file',
     4: 'send_selection',
     12: 'send_smart',
     13: 'workdir',
+    14: 'ls',
+    15: 'print',
+    16: 'names',
+    17: 'str',
     20: 'clear_console',
+    21: 'close_graphics',
+    22: 'remove_objects',
+    23: 'clear_all',
+    27: 'help_selected',
     36: 'set_workdir',
+    70: 'get_workdir',
+    234: 'print_tail',
+    235: 'print_head',
+    253: 'plot',
+    266: 'sweave',
     271: 'send_contiguous',
+    277: 'knit',
     372: 'chunk_next',
     373: 'chunk_current',
     374: 'chunk_previous',
     375: 'chunk_menu',
 }
+# Same pixels as knit (Tinn Knit HTML also ImageIndex 277).
+ALIASES = {
+    'knit-html': 'knit',
+}
+
+PLUGIN_PNG = Path(__file__).resolve().parents[2] / 'plugins' / 'cuda_statghost' / 'png'
+SHIP_PLUGIN = frozenset((
+    'sweave', 'knit', 'knit-html',
+    'ls', 'print', 'print_head', 'print_tail',
+    'names', 'str', 'plot', 'help_selected',
+    'close_graphics', 'remove_objects', 'clear_all',
+))
 
 _PNG_SIG = b'\x89PNG\r\n\x1a\n'
 _ITEM_RE = re.compile(
@@ -166,19 +193,40 @@ def main():
         raise SystemExit('missing indexes: %s (have 0..%s)' % (
             missing, max(found),
         ))
-    for folder in ('16px', '24px', '32px'):
+    folders = ('16px', '24px', '32px')
+    for folder in folders:
         (OUT / folder).mkdir(parents=True, exist_ok=True)
+        if PLUGIN_PNG.is_dir():
+            (PLUGIN_PNG / folder).mkdir(parents=True, exist_ok=True)
     for idx, stem in INDEXES.items():
         blob = found[idx]
         w, h, rows = _png_rgba(blob)
+        written = {16: blob}
         (OUT / '16px' / ('%s.png' % stem)).write_bytes(blob)
         for px in (24, 32):
-            scaled = _resize_nn(w, h, rows, px, px)
-            (OUT / ('%spx' % px) / ('%s.png' % stem)).write_bytes(
-                _pack_png(px, px, scaled)
-            )
+            packed = _pack_png(px, px, _resize_nn(w, h, rows, px, px))
+            written[px] = packed
+            (OUT / ('%spx' % px) / ('%s.png' % stem)).write_bytes(packed)
         print('ok %s  (index %s, %sx%s)' % (stem, idx, w, h))
+        _maybe_ship(stem, written)
+    for alias, src in ALIASES.items():
+        pxmap = {}
+        for folder, px in (('16px', 16), ('24px', 24), ('32px', 32)):
+            data = (OUT / folder / ('%s.png' % src)).read_bytes()
+            (OUT / folder / ('%s.png' % alias)).write_bytes(data)
+            pxmap[px] = data
+        _maybe_ship(alias, pxmap)
+        print('ok alias %s <- %s' % (alias, src))
     print('wrote', OUT)
+
+
+def _maybe_ship(stem, written):
+    if stem not in SHIP_PLUGIN or not PLUGIN_PNG.is_dir():
+        return
+    for px, blob in written.items():
+        dest = PLUGIN_PNG / ('%spx' % px) / ('%s.png' % stem)
+        dest.write_bytes(blob)
+        print('  plugin', dest.as_posix())
 
 
 if __name__ == '__main__':

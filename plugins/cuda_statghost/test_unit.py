@@ -21,6 +21,7 @@ import icons_fg  # noqa: E402
 import chrome_show  # noqa: E402
 import outline  # noqa: E402
 import ranges  # noqa: E402
+import rword  # noqa: E402
 
 
 def _lines(text):
@@ -243,6 +244,14 @@ class TestChromeShow(unittest.TestCase):
             chrome_show.nest_menu_keys('source', chrome_show.DEFAULT_SHOW),
             ('srcsel', 'setwd'),
         )
+        self.assertEqual(
+            chrome_show.nest_menu_keys('inspect', chrome_show.DEFAULT_SHOW),
+            ('ls', 'str', 'names', 'plot', 'help', 'head', 'tail'),
+        )
+        self.assertEqual(
+            chrome_show.nest_menu_keys('clear', chrome_show.DEFAULT_SHOW),
+            ('close_graphics', 'remove_objects', 'clear_all'),
+        )
         self.assertEqual(chrome_show.nest_menu_keys('cfg', chrome_show.DEFAULT_SHOW), ())
 
     def test_collapse_hides_children_when_parent_shown(self):
@@ -256,16 +265,23 @@ class TestChromeShow(unittest.TestCase):
             ('source', 'o', 'send_file', 'o.png'),
             ('srcsel', 'r', 'source_selection', 'r.png'),
             ('setwd', 'w', 'set_wd_here', 'w.png'),
+            ('inspect', 'i', 'inspect_print', 'i.png'),
+            ('ls', 'l', 'inspect_ls', 'l.png'),
+            ('str', 't', 'inspect_str', 't.png'),
             ('clear', 'x', 'clear_console', 'x.png'),
+            ('close_graphics', 'g', 'inspect_graphics_off', 'g.png'),
+            ('clear_all', 'a', 'inspect_clear_all', 'a.png'),
         )
         rows = chrome_show.filter_toolbar_rows(tb, chrome_show.DEFAULT_SHOW)
         names = [r[0] for r in chrome_show.collapse_nested_rows(rows)]
         self.assertEqual(
             names,
-            ['sep', 'cfg', 'sep_send', 'send', 'source', 'clear'],
+            ['sep', 'cfg', 'sep_send', 'send', 'source', 'inspect', 'clear'],
         )
         self.assertNotIn('function', names)
         self.assertNotIn('setwd', names)
+        self.assertNotIn('ls', names)
+        self.assertNotIn('clear_all', names)
 
     def test_collapse_keeps_orphan_child(self):
         tb = (
@@ -285,6 +301,62 @@ class TestChromeShow(unittest.TestCase):
         )
         out = chrome_show.filter_side_actions(side, ('send',))
         self.assertEqual([r[0] for r in out], ['send'])
+
+    def test_side_keys_match_toolbar_order(self):
+        keys = chrome_show.side_keys(chrome_show.DEFAULT_SHOW)
+        self.assertEqual(keys, chrome_show.DEFAULT_SHOW)
+        nested = chrome_show.collapse_nested_rows(
+            tuple((k, k, k, 'x.png') for k in chrome_show.DEFAULT_SHOW),
+        )
+        top = [r[0] for r in nested]
+        pos = {k: i for i, k in enumerate(keys)}
+        ranked = [pos[k] for k in top]
+        self.assertEqual(ranked, sorted(ranked))
+
+    def test_checklist_roundtrip(self):
+        keys = ('cfg', 'send', 'clear')
+        on = {'cfg': True, 'send': False, 'clear': True}
+        raw = chrome_show.encode_checklist(on, keys)
+        self.assertEqual(raw, '0;1,0,1')
+        back = chrome_show.decode_checklist(raw, keys)
+        self.assertEqual(back['cfg'], True)
+        self.assertEqual(back['send'], False)
+        self.assertEqual(back['clear'], True)
+        short = chrome_show.decode_checklist('0;1', keys, fallback=on)
+        self.assertEqual(short, on)
+
+    def test_cli_cycle_subset(self):
+        self.assertTrue(chrome_show.CYCLE_METHODS <= chrome_show.CLI_METHODS)
+        self.assertIn('inspect_ls', chrome_show.CLI_METHODS)
+        self.assertNotIn('config', chrome_show.CLI_METHODS)
+        self.assertNotIn('toggle_host', chrome_show.CLI_METHODS)
+
+
+class TestRWord(unittest.TestCase):
+    def test_identifier_plain_and_pkg(self):
+        line = '  iris <- stats::sd(x)'
+        self.assertEqual(rword.identifier_at(line, 4), 'iris')
+        self.assertEqual(rword.identifier_at(line, 14), 'stats::sd')
+        self.assertTrue(rword.is_ref('iris$Sepal.Length'))
+        self.assertEqual(
+            rword.identifier_at('plot(iris$Sepal.Length)', 10),
+            'iris$Sepal.Length',
+        )
+
+    def test_print_vs_wrap(self):
+        self.assertEqual(rword.print_target('  iris  ', '', 0), 'iris')
+        self.assertEqual(rword.print_target('1 + 1', 'iris', 0), '1 + 1')
+        self.assertEqual(rword.wrap_target('1 + 1', 'iris', 2), '')
+        self.assertEqual(rword.wrap_target('', '  iris <- 1', 4), 'iris')
+        self.assertEqual(rword.wrap_code('str', 'iris'), 'str(iris)')
+        self.assertEqual(rword.help_code('stats::sd'), "help(sd, package='stats')")
+        self.assertEqual(rword.help_code('mean'), 'help(mean)')
+        self.assertEqual(rword.help_code('iris$x'), '')
+
+    def test_empty_caret(self):
+        self.assertEqual(rword.identifier_at('# comment', 0), '')
+        self.assertEqual(rword.identifier_at('1 + 2', 2), '')
+        self.assertEqual(rword.print_target('', '', 0), '')
 
 
 class TestIconFg(unittest.TestCase):

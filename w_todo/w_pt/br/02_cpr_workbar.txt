@@ -1,8 +1,9 @@
 ================================================================================
-CPR -- Plugin CudaText workbar (VP-WB-1..3; Tinn-R_D TBRMain)
+CPR -- Plugin CudaText workbar (VP-WB-1..5; Tinn-R_D TBRMain)
 ================================================================================
-Estado: VP-WB-1 GO+CODE; VP-WB-2 stash (sem swap no plugin); VP-WB-3 REGISTO
-Atualizado: 2026-08-16
+Estado: VP-WB-1 GO+CODE; VP-WB-2 stash (sem swap no plugin); VP-WB-3 e
+  VP-WB-4 (Rnoweb) REGISTO; VP-WB-5 R-control GO+CODE
+Atualizado: 2026-08-16 (GO VP-WB-5 Inspect▾ / Clear▾)
 Ordem: depois de VP-EB-1 / EB-1b (chrome nativo já existe). Não reutilizar
   ids STATG / VP-EB / VP-EX / VP-GEOM.
 Prefixo: **VP-WB-*** (umbrella WORKBAR)
@@ -29,7 +30,8 @@ IN:
   - Aba lateral **não** colapsa (captions).
   - setwd move para a família Source (antes estava no grupo Edit).
   - Plugins menu + hotkeys inalterados.
-OUT: Knitr, Packages, Explorer, Rterm/Rgui/RHost, Send Line, Insert nest.
+OUT: botões Knit/Sweave (→ WB-4), Packages, Explorer, Rterm/Rgui/RHost,
+  Send Line, Insert nest.
 BOK: `python test_unit.py` verde; lab = seta Send/Source após restart.
 Dependências: EB-1 / EB-1b chrome.
 Status: GO+CODE (2026-08-16) — TF lab pendente (restart CudaText).
@@ -45,21 +47,29 @@ Checklist TF:
 VP-WB-2  Glifos Tinn 16px → 24/32 (stash; swap opcional)
 [x] GO [x] CODE [ ] TF
 ================================================================================
-**GO 2026-08-16 (stash só).** Ícones Tinn estão em 16px (`imlTinnR`).
-Plugin **já** tem 16/24/32 Flaticon tintáveis — não substituir no mesmo
-VP que os ninhos (tinta vs cor).
+**GO 2026-08-16 (stash + recortes a cores no plugin).** Ícones Tinn = 16px
+(`imlTinnR`). Plugin Flaticon 16/24/32 tintáveis permanece. Dono:
+importar **sweave / knit / knit-html** (266 / 277) e o 1.º recorte
+**R-control** (14–17, 21–23, 27, 234, 235, 253) para
+`plugins/cuda_statghost/png/` em 16/24/32; sem tint.
 
 IN:
   - Extrair índices essenciais do DFM para `w_todo/icons/{16,24,32}px/`.
+  - Rnoweb: copiar sweave.png, knit.png, knit-html.png para o png do
+    plugin em 16/24/32. knit-html = alias do 277 (Tinn usa o mesmo).
+  - R-control: ls, print, print_head, print_tail, names, str, plot,
+    help_selected, close_graphics, remove_objects, clear_all — idem.
+    Tinn clear_console (20) só no stash (Clear do plugin já tem Flaticon).
   - Receita: `w_todo/tools/extract_tinn_icons.py`.
-OUT: swap automático em `plugins/cuda_statghost/png/`; Explorer/Packages
-  glyphs; upscale no runtime Cuda (sem Pillow no host).
-BOK: PNG 16/24/32 no stash; README da pasta.
-Status: GO+CODE stash; **swap no plugin = GO humano extra**.
+OUT: swap **completo** do set Flaticon; Explorer/Packages glyphs;
+  upscale no runtime Cuda.
+BOK: PNG 16/24/32 no stash; recortes Rnoweb + R-control também em `png/`.
+Status: GO+CODE stash + recortes a cores no plugin. Restante swap =
+  GO humano extra.
 Checklist TF:
-  [ ] 16px extraídos (índices nomeados no SAP)
-  [ ] 24 e 32 gerados ao lado
-  [ ] Plugin png/ Flaticon intacto
+  [x] 16px extraídos (índices nomeados no SAP)
+  [x] 24 e 32 gerados ao lado
+  [x] Plugin png/ Flaticon intacto; Rnoweb + R-control acrescentados
 
 ================================================================================
 VP-WB-3  Ninho Insert (<- / pipe / Outline)
@@ -70,9 +80,62 @@ OUT: TOC / Tools Tinn clone; CODE Tinn-R_D.
 Status: REGISTO.
 
 ================================================================================
+VP-WB-4  Rnoweb: Sweave / knit → artefacto no CudaText
+[ ] GO [ ] CODE [ ] TF
+================================================================================
+Origem: revisão dono 2026-08-16 — nada impede submeter Rnoweb ao SG;
+  o plugin é **interessante** aqui: interpretar no sniper, abrir o
+  resultado no CudaText para **compilar**.
+IN:
+  - Três acções (como Tinn, por extensão + EVAL):
+      Sweave `.Rnw` → `Sweave()` → abrir `.tex`
+      Knit LaTeX `.Rnw` → `knit()` → abrir `.tex`
+      Knit HTML `.Rmd` / `.Rhtml` → `knit2html()` → abrir `.html`
+    Recusa se a extensão não bater.
+  - Ninho Weave▾; glifos Tinn sweave/knit/knit-html já no png/ do plugin
+    (16/24/32, sem tint).
+  - Ficheiro gravado no disco (path real) — **não** `source(.paths[4])`.
+OUT: TeX / pandoc **dentro** do STATghost; `knit2pdf` como substituto
+  da compilação no Cuda; clone da UI Tinn Tools/Project; chunk noweb
+  `<<>>=` neste VP (sniper `#`/branco continua o Send Chunk actual).
+BOK: Sweave ou knit dum `.Rnw` de aula → Consola D23 intacta; o
+  artefacto abre no Cuda; pdflatex **no editor** produz PDF.
+Dependências: EB-1 (EVAL) + Armed R + `knitr` no motor se Knit.
+Status: REGISTO — sem GO / sem CODE. Aula Rnoweb **já** possível à mão.
+
+================================================================================
+VP-WB-5  R-control: Inspect▾ / Clear▾ (conforto sem Alt-Tab)
+[x] GO [x] CODE [ ] TF
+================================================================================
+**GO 2026-08-16.** Recorte Tinn «R control» = atalhos EVAL, **não** clonar
+  Explorer/Plot no CudaText.
+IN:
+  - Inspect▾: pai = print da palavra sob o cursor (`rword.py`); filhos
+    ls, str, names, plot, help(?), head, tail. Recusa se não houver
+    identificador (wrappers). Print aceita selecção de uma linha.
+  - Clear▾: pai = `#. STATGHOST:CLEAR`; filhos graphics.off,
+    rm(list=ls()), clear all (CLEAR + 450 ms + `rm(list=ls());
+    graphics.off()`).
+  - Glifos Tinn em `png/` 16/24/32, sem tint. Config cresce a grelha.
+OUT: edit/fix; Escape {ESC}; example / help.start; Packages;
+  widget ls-browser / Plot no Cuda.
+BOK: `python test_unit.py` (rword + ninhos); lab = cursor em `iris`
+  → Inspect → Consola/Plot do SG; CudaText permanece activo.
+Dependências: EB-1 EVAL + Armed R (excepto CLEAR).
+Status: GO+CODE (2026-08-16) — TF lab pendente (restart CudaText).
+Checklist TF:
+  [ ] Default: Inspect▾ e Clear▾ com seta
+  [ ] Clique Inspect = print; seta ls/str/names/plot/help/head/tail
+  [ ] Clique Clear = CLEAR; seta graphics.off / rm / clear all
+  [ ] Sem identificador → status, não envia (exceto ls e Clear)
+  [ ] Aba lista os filhos (expandido)
+  [ ] Sem widget Plot/Explorer no CudaText
+
+================================================================================
 POLÍTICA / ORDEM
 ================================================================================
- - WB-1 → WB-2 stash → (GO extra) swap glifos → WB-3.
+ - WB-1 → WB-2 stash → (GO extra) swap glifos → WB-3 Insert → WB-4
+   Rnoweb → WB-5 Inspect/Clear.
  - Tinn-R_D = read-only. Pull antes de citar (dev paralelo).
  - GEOM / Explorer / Console-frame: pointer STATghost 14/15 / 12/13.
  - Skill `sap-cpr-workbar` é o dono destes packs.
@@ -82,13 +145,27 @@ JORNAL
 ================================================================================
   2026-08-16  SAP/CPR abertos; GO WB-1 ninhos; GO WB-2 stash de ícones.
               Sem CODE em Tinn-R_D.
+  2026-08-16  Rnoweb: dono — SG interpreta, CudaText compila. VP-WB-4
+              REGISTO. OUT «Knitr» do WB-1 = só botões, não a aula.
+              Três botões Tinn (Sweave / Knit LaTeX .Rnw / Knit HTML
+              .Rmd|.Rhtml); `Knit_PDF` interno = `knit()`, não knit2pdf.
+              GO glifos Rnoweb 266/277 → png/ 16/24/32, sem tint.
+  2026-08-16  R-control: dono — conforto de aula intensiva (inspeccionar
+              /limpar o SG sem Alt-Tab). VP-WB-5 REGISTO. Glifos
+              inspect/hygiene → png/ 16/24/32, sem tint. edit/fix/ESC
+              /example/Packages fora do 1.º recorte.
+  2026-08-16  GO VP-WB-5 CODE: Inspect▾ / Clear▾; `rword.py`; testes
+              chrome_show + rword.
+  2026-08-16  Bateria `test_workbar.py` + loop 30 min (ciclo suave:
+              sem rm/plot/help/Config). on_cli allowlist.
+  2026-08-16  Aba: coluna vertical, wrap off (ls/str não partilham linha).
 
 ================================================================================
 NEXT STEPS
 ================================================================================
-1. Lab TF WB-1 (restart CudaText; gtk2 + Win).
+1. Lab TF WB-1 e WB-5 (restart CudaText; gtk2 + Win).
 2. Olhar stash WB-2; só então GO de swap no `png/`.
-3. Sem WB-3 sem GO.
+3. Sem WB-3 / WB-4 sem GO. Send R em `.Rnw` já BOK sem botão.
 
 ================================================================================
 FIM CPR workbar

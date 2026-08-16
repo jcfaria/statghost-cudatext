@@ -1,13 +1,13 @@
 [info]
 title=STATghost
-desc=Send/Source to STATghost; outline; Arm/Idle; Start/Quit; Clear; toolbar + side tab
+desc=Send/Source/Inspect to STATghost; outline; Arm/Idle; Start/Quit; Clear; toolbar + side tab
 type=cudatext-plugin
 subdir=cuda_statghost
 homepage=https://github.com/jcfaria/statghost-cudatext
 
 [item1]
 section=events
-events=on_start2,on_state
+events=on_start2,on_state,on_cli
 
 [item2]
 section=commands
@@ -80,6 +80,61 @@ method=_
 section=commands
 caption=STATghost\Clear Console
 method=clear_console
+
+[item20]
+section=commands
+caption=STATghost\Inspect\Print selected
+method=inspect_print
+
+[item21]
+section=commands
+caption=STATghost\Inspect\ls()
+method=inspect_ls
+
+[item22]
+section=commands
+caption=STATghost\Inspect\str()
+method=inspect_str
+
+[item23]
+section=commands
+caption=STATghost\Inspect\names()
+method=inspect_names
+
+[item24]
+section=commands
+caption=STATghost\Inspect\plot()
+method=inspect_plot
+
+[item25]
+section=commands
+caption=STATghost\Inspect\Help
+method=inspect_help
+
+[item26]
+section=commands
+caption=STATghost\Inspect\head()
+method=inspect_head
+
+[item27]
+section=commands
+caption=STATghost\Inspect\tail()
+method=inspect_tail
+
+[item28]
+section=commands
+caption=STATghost\graphics.off()
+method=inspect_graphics_off
+
+[item29]
+section=commands
+caption=STATghost\Remove all objects
+method=inspect_rm_all
+
+[item30]
+section=commands
+caption=STATghost\Clear all
+method=inspect_clear_all
 
 [item3]
 section=commands

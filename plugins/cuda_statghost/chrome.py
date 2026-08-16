@@ -54,6 +54,7 @@ from cudatext import TOOLBAR_GET_BUTTON_HANDLE
 from cudatext import TOOLBAR_GET_COUNT
 from cudatext import TOOLBAR_GET_IMAGELIST
 from cudatext import TOOLBAR_SET_WRAP
+from cudatext import TOOLBAR_SET_VERTICAL
 from cudatext import TOOLBAR_THEME
 from cudatext import TOOLBAR_UPDATE
 from cudatext import app_proc
@@ -91,8 +92,8 @@ TICK_MS = 2000
 # Explorer / OnTop stay in STATghost. Clear Console is here (owner).
 #
 # GOLDEN RULE — same action ids / same relative order on toolbar and
-# side tab. Toolbar nests related extras under Send / Source (Tinn
-# TBRMain analogue); side tab stays expanded (vertical captions).
+# side tab. Toolbar nests extras under Send / Source / Inspect / Clear
+# (Tinn TBRMain analogue); side tab stays expanded (vertical captions).
 _TB = (
     ('sep', '-', None, None),
     ('cfg', 'STATghost plugin Config', 'config', 'setting-lines.png'),
@@ -107,7 +108,18 @@ _TB = (
     ('source', 'Source file via .paths[4]', 'send_file', 'export.png'),
     ('srcsel', 'Source selection / function via .paths[5]', 'source_selection', 'source-sel.png'),
     ('setwd', 'setwd to file directory', 'set_wd_here', 'setwd.png'),
+    ('inspect', 'Print identifier under caret (Inspect extras in the arrow)', 'inspect_print', 'print.png'),
+    ('ls', 'ls()', 'inspect_ls', 'ls.png'),
+    ('str', 'str() of identifier under caret', 'inspect_str', 'str.png'),
+    ('names', 'names() of identifier under caret', 'inspect_names', 'names.png'),
+    ('plot', 'plot() of identifier under caret', 'inspect_plot', 'plot.png'),
+    ('help', 'help() of identifier under caret', 'inspect_help', 'help_selected.png'),
+    ('head', 'head() of identifier under caret', 'inspect_head', 'print_head.png'),
+    ('tail', 'tail() of identifier under caret', 'inspect_tail', 'print_tail.png'),
     ('clear', 'Clear STATghost Console', 'clear_console', 'clear.png'),
+    ('close_graphics', 'graphics.off()', 'inspect_graphics_off', 'close_graphics.png'),
+    ('remove_objects', 'rm(list=ls())', 'inspect_rm_all', 'remove_objects.png'),
+    ('clear_all', 'Clear Console, rm(list=ls()), graphics.off()', 'inspect_clear_all', 'clear_all.png'),
     ('sep_edit', '-', None, None),
     ('assign', 'Insert <-', 'insert_assign', 'assign.png'),
     ('pipe', 'Insert pipe', 'insert_pipe', 'pipe.png'),
@@ -125,8 +137,19 @@ _SIDE_CAP = {
     'chunk': 'Chunk',
     'source': 'Source',
     'srcsel': 'Src sel',
-    'clear': 'Clear',
     'setwd': 'setwd',
+    'inspect': 'Inspect',
+    'ls': 'ls()',
+    'str': 'str()',
+    'names': 'names()',
+    'plot': 'plot()',
+    'help': 'Help',
+    'head': 'head()',
+    'tail': 'tail()',
+    'clear': 'Clear',
+    'close_graphics': 'graphics.off',
+    'remove_objects': 'rm all',
+    'clear_all': 'Clear all',
     'assign': '<-',
     'pipe': 'Pipe',
     'outline': 'Outline',
@@ -136,6 +159,35 @@ _SIDE = tuple(
     for name, _hint, method, icon in _TB
     if method is not None
 )
+
+# Tinn colour art — do not run through icons.py tint (WB-4 Rnoweb;
+# WB-5 R-control inspect / hygiene).
+_COLOUR_PNG = frozenset((
+    'sweave.png',
+    'knit.png',
+    'knit-html.png',
+    'ls.png',
+    'print.png',
+    'print_head.png',
+    'print_tail.png',
+    'names.png',
+    'str.png',
+    'plot.png',
+    'help_selected.png',
+    'close_graphics.png',
+    'remove_objects.png',
+    'clear_all.png',
+))
+
+
+def _icon_load(path, fname, rgb):
+    """Tint Flaticon; keep Tinn colour Rnoweb / R-control glyphs as-is."""
+    if os.path.basename(fname) in _COLOUR_PNG:
+        return path
+    try:
+        return icontint.tinted_path(path, rgb)
+    except Exception:
+        return path
 
 
 def _tb_rows_full():
@@ -233,6 +285,10 @@ class Chrome:
         self._timer = False
         self._outline_items = []
         self._outline_hdr = 0  # status lines before outline entries
+        self._side_lines = None
+        self._arm_paint = None
+        self._icons_busy = False
+        self._icons_sig = None
         # False while the toolbar is being built — ADD_ITEM must not
         # fire Start/Quit. STATghost never auto-starts with CudaText.
         self._host_cmd_ok = False
@@ -291,24 +347,27 @@ class Chrome:
     def refresh(self):
         running = host.is_running()
         armed = bool(running and self._armed)
-        if 'arm' in self._btns:
-            button_proc(
-                self._btns['arm'], BTN_SET_IMAGEINDEX,
-                self._icons['armed' if armed else 'idle'],
-            )
-            button_proc(
-                self._btns['arm'], BTN_SET_HINT,
-                'Armed — click to Idle' if armed else 'Idle — click to Arm',
-            )
-        if 'host' in self._btns:
-            button_proc(
-                self._btns['host'], BTN_SET_IMAGEINDEX,
-                self._icons['kill' if running else 'power'],
-            )
-            button_proc(
-                self._btns['host'], BTN_SET_HINT,
-                'Quit STATghost' if running else 'Start STATghost',
-            )
+        paint = (running, armed)
+        if paint != self._arm_paint:
+            self._arm_paint = paint
+            if 'arm' in self._btns:
+                button_proc(
+                    self._btns['arm'], BTN_SET_IMAGEINDEX,
+                    self._icons.get('armed' if armed else 'idle', -1),
+                )
+                button_proc(
+                    self._btns['arm'], BTN_SET_HINT,
+                    'Armed — click to Idle' if armed else 'Idle — click to Arm',
+                )
+            if 'host' in self._btns:
+                button_proc(
+                    self._btns['host'], BTN_SET_IMAGEINDEX,
+                    self._icons.get('kill' if running else 'power', -1),
+                )
+                button_proc(
+                    self._btns['host'], BTN_SET_HINT,
+                    'Quit STATghost' if running else 'Start STATghost',
+                )
         self._refresh_side(running, armed)
 
     def install_toolbar(self):
@@ -337,6 +396,19 @@ class Chrome:
         self.refresh()
         if self._h_side_bar:
             toolbar_proc(self._h_side_bar, TOOLBAR_UPDATE)
+
+    def _layout_side_bar(self, h_bar):
+        """One vertical column, toolbar relative order — never wrap with width."""
+        if not h_bar:
+            return
+        try:
+            toolbar_proc(h_bar, TOOLBAR_SET_VERTICAL, index=True)
+            toolbar_proc(h_bar, TOOLBAR_SET_WRAP, index=False)
+        except Exception:
+            try:
+                toolbar_proc(h_bar, TOOLBAR_SET_WRAP, index=False)
+            except Exception:
+                pass
 
     def _rebuild_side_buttons(self):
         """Drop and recreate side-tab actions (EB-1b set may grow)."""
@@ -368,7 +440,7 @@ class Chrome:
             )
             self._side_btns[name] = hb
         self._side_icon_idx = side_icons
-        toolbar_proc(h_bar, TOOLBAR_SET_WRAP, index=True)
+        self._layout_side_bar(h_bar)
 
     def _create_toolbar(self, h_bar):
         self._btns = {}
@@ -494,29 +566,62 @@ class Chrome:
         return found
 
     def reload_icons(self):
-        """Re-tint toolbar + side glyphs (theme change or Config icons FG)."""
+        """Re-tint toolbar + side glyphs (theme change or Config icons FG).
+
+        Skip if already loading (THEME_UI can fire from TOOLBAR_UPDATE) or
+        if pixel size + theme tag did not change — otherwise idle/armed
+        imagelist swaps can TDR a weak GPU.
+        """
+        if self._icons_busy:
+            return
         try:
             h_bar = app_proc(PROC_GET_MAIN_TOOLBAR, '')
         except Exception:
             h_bar = None
-        self._load_icons(h_bar)
-        self._apply_imglist()
-        self._reload_side_icons()
-        self.refresh()
+        px = 16
         if h_bar:
-            toolbar_proc(h_bar, TOOLBAR_UPDATE)
-        if self._h_side_bar:
-            toolbar_proc(self._h_side_bar, TOOLBAR_UPDATE)
+            host_list = toolbar_proc(h_bar, TOOLBAR_GET_IMAGELIST)
+            if host_list:
+                size = imagelist_proc(host_list, IMAGELIST_GET_SIZE)
+                if isinstance(size, (tuple, list)) and size:
+                    px = int(size[0])
+        try:
+            sig = (px, icontint.theme_tag())
+        except Exception:
+            sig = (px, None)
+        if sig == self._icons_sig:
+            return
+        self._icons_busy = True
+        try:
+            self._load_icons(h_bar)
+            self._apply_imglist()
+            self._reload_side_icons()
+            self._arm_paint = None
+            self._side_lines = None
+            self._icons_sig = sig
+            self.refresh()
+            if h_bar:
+                toolbar_proc(h_bar, TOOLBAR_UPDATE)
+            if self._h_side_bar:
+                toolbar_proc(self._h_side_bar, TOOLBAR_UPDATE)
+        finally:
+            self._icons_busy = False
 
     def _apply_imglist(self):
         if not self._imglist:
             return
+        running = False
+        try:
+            running = host.is_running()
+        except Exception:
+            pass
+        armed = bool(running and self._armed)
         for name, h_btn in self._btns.items():
             button_proc(h_btn, BTN_SET_IMAGELIST, self._imglist)
             if name == 'arm':
-                key = 'idle'
+                key = 'armed' if armed else 'idle'
             elif name == 'host':
-                key = 'power'
+                key = 'kill' if running else 'power'
             else:
                 key = name
             button_proc(h_btn, BTN_SET_IMAGEINDEX, self._icons.get(key, -1))
@@ -556,11 +661,7 @@ class Chrome:
             path = os.path.join(folder, fname)
             idx = -1
             if os.path.isfile(path):
-                load = path
-                try:
-                    load = icontint.tinted_path(path, rgb)
-                except Exception:
-                    load = path
+                load = _icon_load(path, fname, rgb)
                 try:
                     idx = imagelist_proc(self._imglist, IMAGELIST_ADD, value=load)
                 except Exception:
@@ -587,11 +688,7 @@ class Chrome:
             path = os.path.join(folder, fname)
             idx = -1
             if os.path.isfile(path):
-                load = path
-                try:
-                    load = icontint.tinted_path(path, rgb)
-                except Exception:
-                    load = path
+                load = _icon_load(path, fname, rgb)
                 try:
                     idx = imagelist_proc(il, IMAGELIST_ADD, value=load)
                 except Exception:
@@ -663,7 +760,7 @@ class Chrome:
                 self._side_btns[name] = hb
             self._side_icon_idx = side_icons
             self._apply_side_visibility()
-            toolbar_proc(h_bar, TOOLBAR_SET_WRAP, index=True)
+            self._layout_side_bar(h_bar)
             toolbar_proc(h_bar, TOOLBAR_UPDATE)
         n = dlg_proc(h, DLG_CTL_ADD, 'listbox_ex')
         dlg_proc(h, DLG_CTL_PROP_SET, index=n, prop={
@@ -789,6 +886,9 @@ class Chrome:
             lines.append(sgoutline.format_caption(it, width=40))
         if not self._outline_items:
             lines.append('(no sections / functions)')
+        if lines == self._side_lines:
+            return
+        self._side_lines = list(lines)
         listbox_proc(self._h_side_list, LISTBOX_DELETE_ALL)
         for line in lines:
             listbox_proc(self._h_side_list, LISTBOX_ADD, text=line)

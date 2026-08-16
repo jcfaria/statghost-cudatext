@@ -14,6 +14,7 @@ from cudatext import msg_status
 
 try:
     from . import chrome
+    from . import chrome_show
     from . import config as plugincfg
     from . import editor
     from . import host
@@ -22,6 +23,7 @@ try:
     from . import prefs
     from . import protocol
     from . import ranges as sgranges
+    from . import rword
     from .statement import (
         collapse_wraps,
         dedent_block,
@@ -31,6 +33,7 @@ try:
     )
 except ImportError:
     import chrome
+    import chrome_show
     import config as plugincfg
     import editor
     import host
@@ -39,6 +42,7 @@ except ImportError:
     import prefs
     import protocol
     import ranges as sgranges
+    import rword
     from statement import (
         collapse_wraps,
         dedent_block,
@@ -262,6 +266,84 @@ class Command:
             return
         _send_code('setwd(' + _r_quote(folder) + ')', 'setwd', apply_collapse=False)
 
+    def inspect_print(self):
+        """EVAL the identifier (or one-line selection) under the caret."""
+        target = editor.r_print_target()
+        if not target:
+            msg_status(PLUGIN + ': no identifier to print')
+            return
+        _send_code(target, 'print', apply_collapse=False)
+
+    def inspect_ls(self):
+        _send_code('ls()', 'ls', apply_collapse=False)
+
+    def inspect_str(self):
+        self._inspect_wrap('str', 'str')
+
+    def inspect_names(self):
+        self._inspect_wrap('names', 'names')
+
+    def inspect_plot(self):
+        self._inspect_wrap('plot', 'plot')
+
+    def inspect_head(self):
+        self._inspect_wrap('head', 'head')
+
+    def inspect_tail(self):
+        self._inspect_wrap('tail', 'tail')
+
+    def inspect_help(self):
+        code = rword.help_code(editor.r_wrap_target())
+        if not code:
+            msg_status(PLUGIN + ': no identifier for help')
+            return
+        _send_code(code, 'help', apply_collapse=False)
+
+    def _inspect_wrap(self, fn, mode):
+        code = rword.wrap_code(fn, editor.r_wrap_target())
+        if not code:
+            msg_status(PLUGIN + ': no identifier for ' + mode)
+            return
+        _send_code(code, mode, apply_collapse=False)
+
+    def inspect_graphics_off(self):
+        _send_code('graphics.off()', 'graphics.off', apply_collapse=False)
+
+    def inspect_rm_all(self):
+        _send_code('rm(list=ls())', 'rm', apply_collapse=False)
+
+    def inspect_clear_all(self):
+        """Wipe Console, then EVAL rm + graphics.off (Tinn Clear all)."""
+        if chrome.get(self).host_cmd_allowed():
+            _send_command(
+                protocol.CMD_CLEAR,
+                'clear all: Console wipe, then workspace + graphics',
+            )
+            try:
+                from cudatext import TIMER_START_ONE
+                from cudatext import timer_proc
+                timer_proc(
+                    TIMER_START_ONE,
+                    'cuda_statghost.clear_all_eval',
+                    450,
+                )
+                return
+            except Exception:
+                pass
+        _send_code(
+            'rm(list=ls()); graphics.off()',
+            'clear-all',
+            apply_collapse=False,
+        )
+
+    def clear_all_eval(self, tag='', info=''):
+        """Second tick of Clear all — workspace after the CLEAR clip."""
+        _send_code(
+            'rm(list=ls()); graphics.off()',
+            'clear-all',
+            apply_collapse=False,
+        )
+
     def insert_assign(self):
         """Insert ` <- ` (RStudio Alt+-)."""
         if _insert_at_caret(' <- '):
@@ -363,7 +445,6 @@ class Command:
         """Plugin settings — exe / icons FG / visible chrome buttons."""
         if plugincfg.show_config():
             chrome.get(self).rebuild_chrome()
-            chrome.get(self).reload_icons()
         else:
             chrome.get(self).refresh()
 
@@ -391,3 +472,19 @@ class Command:
     def on_state(self, ed_self, state):
         if state == APPSTATE_THEME_UI:
             chrome.get(self).reload_icons()
+
+    def on_cli(self, *args):
+        """Lab / cyclic TF: `cudatext -p=cuda_statghost#inspect_ls`."""
+        name = ''
+        for a in args:
+            if isinstance(a, str) and a.strip() in chrome_show.CLI_METHODS:
+                name = a.strip()
+                break
+        if not name:
+            msg_status(PLUGIN + ': on_cli ignored')
+            return
+        fn = getattr(self, name, None)
+        if not callable(fn):
+            msg_status(PLUGIN + ': on_cli missing ' + name)
+            return
+        fn()
