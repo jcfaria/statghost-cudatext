@@ -31,6 +31,9 @@ TF (automatic, no human hands):
      def/for into R is a Console Error:. Reads keys.json
      (this lab: Ctrl+Space). Bootstraps /tmp/sg_prod_venv (python-xlib).
      Logs: /tmp/sg_tf/last.log
+  4) python3 test_workbar.py           — nests + live SG
+     STATGHOST_WORKBAR_TF=cuda|full also fires plugin Send (Linux =
+     same X11 helpers as test_production.py; needs python-xlib).
 
 Send (no selection):
   1. If the caret is inside `name <- function(...) { … }` → whole function

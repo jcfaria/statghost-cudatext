@@ -418,7 +418,7 @@ class TestWorkbarLiveSG(unittest.TestCase):
 
 @unittest.skipUnless(_CUDA, 'set STATGHOST_WORKBAR_TF=cuda to send Ctrl+Enter')
 class TestWorkbarLiveCuda(unittest.TestCase):
-    """Open sample in the running CudaText and fire plugin Send (Ctrl+Enter)."""
+    """Open sample in the running CudaText and fire plugin Send."""
 
     @classmethod
     def setUpClass(cls):
@@ -426,37 +426,70 @@ class TestWorkbarLiveCuda(unittest.TestCase):
             raise unittest.SkipTest('STATghost is not running')
         if not os.path.isfile(HELLO):
             raise unittest.SkipTest('sample 01_hello.R missing')
-        if not _WIN:
-            raise unittest.SkipTest('Cuda hotkey layer is Windows-only here')
-        if not os.path.isfile(CUDA_EXE):
-            raise unittest.SkipTest('cudatext.exe not found')
-        if not _cuda_hwnd():
-            raise unittest.SkipTest('CudaText window not found')
+        if _WIN:
+            if not os.path.isfile(CUDA_EXE):
+                raise unittest.SkipTest('cudatext.exe not found')
+            if not _cuda_hwnd():
+                raise unittest.SkipTest('CudaText window not found')
+        else:
+            if not os.environ.get('DISPLAY'):
+                raise unittest.SkipTest('DISPLAY unset')
+            try:
+                from Xlib.ext import xtest  # noqa: F401
+                import test_production as prod
+            except ImportError:
+                raise unittest.SkipTest(
+                    'python-xlib missing (use /tmp/sg_prod_venv)'
+                )
+            if not prod._cuda_exe() or not prod._cuda_wid():
+                raise unittest.SkipTest('CudaText window not found')
+            cls._prod = prod
         cls.clip = _clip_r()
 
     def test_01_send_hello_one_plus_one(self):
         _arm()
         time.sleep(0.3)
-        subprocess.Popen(
-            [CUDA_EXE, '%s@7' % HELLO],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        deadline = time.time() + 8.0
-        while time.time() < deadline:
-            time.sleep(0.15)
-        self.assertTrue(_focus_cuda(), 'could not focus CudaText')
-        VK_ESCAPE = 0x1B
-        VK_CONTROL = 0x11
-        VK_RETURN = 0x0D
-        _send_chord((VK_ESCAPE,))
-        time.sleep(0.08)
-        _send_chord((VK_CONTROL, VK_RETURN))
+        if _WIN:
+            subprocess.Popen(
+                [CUDA_EXE, '%s@7' % HELLO],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            deadline = time.time() + 8.0
+            while time.time() < deadline:
+                time.sleep(0.15)
+            self.assertTrue(_focus_cuda(), 'could not focus CudaText')
+            VK_ESCAPE = 0x1B
+            VK_CONTROL = 0x11
+            VK_RETURN = 0x0D
+            _send_chord((VK_ESCAPE,))
+            time.sleep(0.08)
+            _send_chord((VK_CONTROL, VK_RETURN))
+        else:
+            prod = self._prod
+            exe = prod._cuda_exe()
+            subprocess.Popen(
+                [exe, '%s@7' % HELLO],
+                start_new_session=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            deadline = time.time() + 10.0
+            title = ''
+            while time.time() < deadline:
+                title = prod._cuda_title()
+                if '01_hello.R' in title:
+                    break
+                time.sleep(0.15)
+            self.assertIn('01_hello.R', title, 'CudaText did not show 01_hello.R')
+            prod._focus(prod._cuda_wid())
+            prod._send_chord('Escape')
+            time.sleep(0.08)
+            prod._send_chord(prod._hotkey('send_selection', 'Ctrl+Enter'))
         found, last = _wait_clip('1 + 1', timeout=10.0)
         self.assertTrue(
             found,
-            'Send (Ctrl+Enter) did not put 1 + 1 into clip.R\n---\n%s'
-            % last[:400],
+            'plugin Send did not put 1 + 1 into clip.R\n---\n%s' % last[:400],
         )
 
 

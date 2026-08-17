@@ -161,6 +161,7 @@ JOURNAL
               rm/plot/help/Config). on_cli allowlist.
   2026-08-16  Side tab: one vertical column, wrap off (ls/str not a pair).
   2026-08-16  Owner: menu / toolbar / side tab share one nest tree.
+  2026-08-16  Workbar live Send on Linux (X11), not Windows-only.
 
 ================================================================================
 NEXT STEPS

@@ -160,6 +160,7 @@ JORNAL
               sem rm/plot/help/Config). on_cli allowlist.
   2026-08-16  Aba: coluna vertical, wrap off (ls/str não partilham linha).
   2026-08-16  Dono: menu / toolbar / aba partilham a mesma árvore.
+  2026-08-16  Workbar Send live no Linux (X11), não só Windows.
 
 ================================================================================
 NEXT STEPS

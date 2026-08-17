@@ -63,7 +63,8 @@ sent twice without a clipboard change is skipped (same as a human Copy).
 Do **not** embed a REPL inside CudaText.
 
 TF: `bash plugins/cudatext/run_tf.sh` (unit + functional + production).
-Workbar battery: `python3 plugins/cudatext/cuda_statghost/test_workbar.py`.
+Workbar: `STATGHOST_WORKBAR_TF=cuda|full python3 plugins/cudatext/cuda_statghost/test_workbar.py`
+(Linux live Send uses the same X11 path as production — `/tmp/sg_prod_venv`).
 
 ## Relationship
 
