@@ -2,7 +2,7 @@
 # Workbar battery (VP-WB-1 / WB-5). Layers:
 #   A static  — nests, glyphs, install.inf methods, rword payloads
 #   B live SG — clipboard EVAL → STATghost clip.R (gentle cycle)
-#   C live Cuda — open sample + Ctrl+Enter (plugin Send)
+#   C live Cuda — open sample + configured Send hotkey
 #
 # Default cycle is gentle: no Config, no Quit, no rm, no plot/help.
 # Full destructive: STATGHOST_WORKBAR_TF=full
@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
@@ -31,15 +32,15 @@ _SG = host.sibling_dir('statghost') or ''
 SAMPLE = os.path.join(_SG, 'sample') if _SG else ''
 SAMPLE_R = os.path.join(SAMPLE, 'R')
 HELLO = os.path.join(SAMPLE_R, '01_hello.R')
-_CUDA = host.sibling_dir('CudaText') or ''
-CUDA_EXE = os.path.join(_CUDA, 'app', 'cudatext.exe') if _CUDA else ''
+_CUDA_ROOT = host.sibling_dir('CudaText') or ''
+CUDA_EXE = os.path.join(_CUDA_ROOT, 'app', 'cudatext.exe') if _CUDA_ROOT else ''
 POLL_S = 0.12
 EVAL_WAIT_S = 18.0
 _WIN = sys.platform.startswith('win')
 _FULL = (os.environ.get('STATGHOST_WORKBAR_TF') or '').strip().lower() in (
     '1', 'true', 'full', 'yes',
 )
-_CUDA = _FULL or (os.environ.get('STATGHOST_WORKBAR_TF') or '').strip().lower() in (
+_CUDA_LAYER = _FULL or (os.environ.get('STATGHOST_WORKBAR_TF') or '').strip().lower() in (
     'cuda', 'send',
 )
 COLOUR_PNG = (
@@ -48,6 +49,58 @@ COLOUR_PNG = (
     'close_graphics.png', 'remove_objects.png', 'clear_all.png',
     'sweave.png', 'knit.png', 'knit-html.png',
 )
+_VK = {
+    'ctrl': 0x11,
+    'control': 0x11,
+    'alt': 0x12,
+    'menu': 0x12,
+    'shift': 0x10,
+    'enter': 0x0D,
+    'return': 0x0D,
+    'space': 0x20,
+    'escape': 0x1B,
+    'esc': 0x1B,
+}
+
+
+def _keys_json_paths():
+    out = [os.path.expanduser('~/.config/cudatext/settings/keys.json')]
+    if _CUDA_ROOT:
+        out.extend((
+            os.path.join(_CUDA_ROOT, 'settings', 'keys.json'),
+            os.path.join(_CUDA_ROOT, 'app', 'settings', 'keys.json'),
+        ))
+    appdata = os.environ.get('APPDATA')
+    if appdata:
+        out.append(os.path.join(appdata, 'CudaText', 'settings', 'keys.json'))
+    return out
+
+
+def _hotkey(method, default):
+    for path in _keys_json_paths():
+        try:
+            with open(path, encoding='utf-8') as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        row = data.get('cuda_statghost,' + method) or {}
+        chords = row.get('s1') or []
+        if chords:
+            return chords[0]
+    return default
+
+
+def _chord_to_vks(chord):
+    out = []
+    for part in (chord or '').split('+'):
+        p = part.strip().lower()
+        if not p:
+            continue
+        if p in _VK:
+            out.append(_VK[p])
+        elif len(p) == 1:
+            out.append(ord(p.upper()))
+    return tuple(out)
 
 
 def _inf_methods():
@@ -206,9 +259,27 @@ def _focus_cuda():
         return False
     import ctypes
     user32 = ctypes.windll.user32
+    kernel32 = ctypes.windll.kernel32
     user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+    fg = user32.GetForegroundWindow()
+    self_tid = kernel32.GetCurrentThreadId()
+    fg_tid = user32.GetWindowThreadProcessId(fg, None) if fg else 0
+    tgt_tid = user32.GetWindowThreadProcessId(hwnd, None)
+    attached = []
+    for other in (fg_tid, tgt_tid):
+        if other and other != self_tid:
+            if user32.AttachThreadInput(self_tid, other, True):
+                attached.append(other)
+    user32.BringWindowToTop(hwnd)
     user32.SetForegroundWindow(hwnd)
-    time.sleep(0.35)
+    for other in attached:
+        user32.AttachThreadInput(self_tid, other, False)
+    deadline = time.time() + 1.2
+    while time.time() < deadline:
+        if int(user32.GetForegroundWindow()) == int(hwnd):
+            time.sleep(0.15)
+            return True
+        time.sleep(0.05)
     return int(user32.GetForegroundWindow()) == int(hwnd)
 
 
@@ -343,6 +414,10 @@ class TestWorkbarStatic(unittest.TestCase):
         self.assertEqual(rword.wrap_code('str', ''), '')
         self.assertEqual(rword.help_code('iris$x'), '')
 
+    def test_send_chord_parses_configured_hotkey(self):
+        self.assertEqual(_chord_to_vks('Ctrl+Enter'), (0x11, 0x0D))
+        self.assertEqual(_chord_to_vks('Ctrl+Alt+Space'), (0x11, 0x12, 0x20))
+
 
 class TestWorkbarLiveSG(unittest.TestCase):
     """Clipboard → Armed STATghost. Leaves the session up."""
@@ -416,9 +491,9 @@ class TestWorkbarLiveSG(unittest.TestCase):
         self._land(rword.help_code('iris'))
 
 
-@unittest.skipUnless(_CUDA, 'set STATGHOST_WORKBAR_TF=cuda to send Ctrl+Enter')
+@unittest.skipUnless(_CUDA_LAYER, 'set STATGHOST_WORKBAR_TF=cuda to fire plugin Send')
 class TestWorkbarLiveCuda(unittest.TestCase):
-    """Open sample in the running CudaText and fire plugin Send."""
+    """Open sample in the running CudaText and fire the configured Send hotkey."""
 
     @classmethod
     def setUpClass(cls):
@@ -449,6 +524,7 @@ class TestWorkbarLiveCuda(unittest.TestCase):
     def test_01_send_hello_one_plus_one(self):
         _arm()
         time.sleep(0.3)
+        chord = _hotkey('send_selection', 'Ctrl+Enter')
         if _WIN:
             subprocess.Popen(
                 [CUDA_EXE, '%s@7' % HELLO],
@@ -459,12 +535,11 @@ class TestWorkbarLiveCuda(unittest.TestCase):
             while time.time() < deadline:
                 time.sleep(0.15)
             self.assertTrue(_focus_cuda(), 'could not focus CudaText')
-            VK_ESCAPE = 0x1B
-            VK_CONTROL = 0x11
-            VK_RETURN = 0x0D
-            _send_chord((VK_ESCAPE,))
+            vks = _chord_to_vks(chord)
+            self.assertTrue(vks, 'could not parse Send hotkey %r' % chord)
+            _send_chord((0x1B,))
             time.sleep(0.08)
-            _send_chord((VK_CONTROL, VK_RETURN))
+            _send_chord(vks)
         else:
             prod = self._prod
             exe = prod._cuda_exe()
@@ -489,7 +564,8 @@ class TestWorkbarLiveCuda(unittest.TestCase):
         found, last = _wait_clip('1 + 1', timeout=10.0)
         self.assertTrue(
             found,
-            'plugin Send did not put 1 + 1 into clip.R\n---\n%s' % last[:400],
+            'plugin Send (%s) did not put 1 + 1 into clip.R\n---\n%s'
+            % (chord, last[:400]),
         )
 
 

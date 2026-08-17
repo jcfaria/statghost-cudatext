@@ -161,6 +161,8 @@ JORNAL
   2026-08-16  Aba: coluna vertical, wrap off (ls/str não partilham linha).
   2026-08-16  Dono: menu / toolbar / aba partilham a mesma árvore.
   2026-08-16  Workbar Send live no Linux (X11), não só Windows.
+  2026-08-16  Win10+Linux reunificados: sibling_dir ignora a pasta host;
+              Send da workbar lê keys.json (fallback Ctrl+Enter).
 
 ================================================================================
 NEXT STEPS

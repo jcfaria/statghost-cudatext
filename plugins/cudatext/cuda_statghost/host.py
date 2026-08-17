@@ -48,11 +48,24 @@ def _configured_exe():
         return ''
 
 
+def _is_under(child, ancestor):
+    """True if *child* lives inside *ancestor* (Windows-safe, case folding)."""
+    try:
+        c = os.path.normcase(os.path.abspath(child))
+        a = os.path.normcase(os.path.abspath(ancestor))
+        return os.path.commonpath([c, a]) == a
+    except ValueError:
+        return False
+
+
 def sibling_dir(name):
     """Walk up from this file until a sibling directory *name* exists.
 
     realpath() so a CudaText symlink install still starts in this repo.
     Depth is not hardcoded — survives plugins/<host>/ nesting.
+
+    Skip a candidate that *contains this file*: on Windows, plugins/cudatext
+    matches sibling name CudaText (case-insensitive) and is the host folder.
     """
     here = os.path.dirname(os.path.realpath(__file__))
     cur = here
@@ -61,7 +74,7 @@ def sibling_dir(name):
         if parent == cur:
             break
         cand = os.path.join(parent, name)
-        if os.path.isdir(cand):
+        if os.path.isdir(cand) and not _is_under(here, cand):
             return os.path.abspath(cand)
         cur = parent
     return None

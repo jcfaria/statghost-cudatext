@@ -162,6 +162,8 @@ JOURNAL
   2026-08-16  Side tab: one vertical column, wrap off (ls/str not a pair).
   2026-08-16  Owner: menu / toolbar / side tab share one nest tree.
   2026-08-16  Workbar live Send on Linux (X11), not Windows-only.
+  2026-08-16  Win10+Linux reunified: sibling_dir skips host folder;
+              workbar Send reads keys.json (fallback Ctrl+Enter).
 
 ================================================================================
 NEXT STEPS

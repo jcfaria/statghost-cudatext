@@ -743,11 +743,30 @@ class TestSiblingDir(unittest.TestCase):
         root = host.sibling_dir('statghost')
         self.assertTrue(root)
         self.assertTrue(os.path.isdir(os.path.join(root, 'sample', 'R')))
+        here = os.path.dirname(os.path.realpath(host.__file__))
+        self.assertFalse(host._is_under(here, root))
 
     def test_sibling_exe_under_statghost(self):
         root = host.sibling_dir('statghost')
         exe = host._sibling_exe()
-        self.assertTrue(exe.startswith(root))
+        self.assertTrue(os.path.normcase(exe).startswith(os.path.normcase(root)))
+
+    def test_cudatext_is_not_host_folder(self):
+        """Windows: plugins/cudatext must not satisfy sibling_dir('CudaText')."""
+        here = os.path.dirname(os.path.realpath(host.__file__))
+        host_folder = os.path.abspath(os.path.dirname(here))
+        root = host.sibling_dir('CudaText')
+        if root:
+            self.assertNotEqual(
+                os.path.normcase(host_folder),
+                os.path.normcase(os.path.abspath(root)),
+            )
+            self.assertFalse(host._is_under(here, root))
+            self.assertTrue(
+                os.path.isdir(os.path.join(root, 'app', 'py'))
+                or os.path.isfile(os.path.join(root, 'app', 'cudatext.exe'))
+                or os.path.isfile(os.path.join(root, 'app', 'cudatext')),
+            )
 
 
 if __name__ == '__main__':
