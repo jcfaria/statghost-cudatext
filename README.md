@@ -41,6 +41,8 @@ send, the caret advances to the next code line and **stops**.
 
 Menu, toolbar and side tab share **one nest tree**: parent click = action,
 arrow / submenu = children (`Send▾` `Source▾` `Inspect▾` `Clear▾`).
+Config (tree **Send** / **Chrome** / **Host**) no longer stacks everything
+in one 560px pane.
 
 ```bash
 bash plugins/cudatext/install_lab.sh

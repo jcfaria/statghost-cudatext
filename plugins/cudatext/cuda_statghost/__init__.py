@@ -87,7 +87,7 @@ def _send_code(text, mode, apply_collapse=True):
     if collapse:
         text = collapse_wraps(text)
     n_out = _line_count(text)
-    _set_clip(protocol.make_eval(text))
+    _set_clip(protocol.make_eval(text, keep_focus=prefs.get_keep_focus()))
     msg_status(
         PLUGIN + ': sent ' + mode + ' (' + str(len(text))
         + ' chars, lines ' + str(n_in) + '→' + str(n_out)
@@ -450,6 +450,10 @@ class Command:
             chrome.get(self).rebuild_chrome()
         else:
             chrome.get(self).refresh()
+
+    def config_dlg(self, id_dlg, id_ctl, data='', info=''):
+        """dlg_proc string callback (gtk2: bound methods do not fire)."""
+        plugincfg.on_dlg(id_dlg, info or data)
 
     def open_side(self):
         """Sidebar button / Plugins → STATghost side tab."""

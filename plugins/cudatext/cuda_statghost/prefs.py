@@ -15,6 +15,7 @@ INI_NAME = 'cuda_statghost.ini'
 # In-process cache — INI is source of truth on disk; cache avoids a stale
 # read if the editor keeps an old handle, and makes Send see OK immediately.
 _collapse_cache = None
+_keep_focus_cache = None
 _source_echo_cache = None
 _source_encoding_cache = None
 _pipe_cache = None
@@ -50,6 +51,24 @@ def set_collapse(on):
     global _collapse_cache
     _collapse_cache = bool(on)
     ini_write(ini_path(), 'send', 'collapse', '1' if on else '0')
+
+
+def get_keep_focus():
+    """Default on: plugin Send asks STATghost to restore the editor."""
+    global _keep_focus_cache
+    if _keep_focus_cache is not None:
+        return bool(_keep_focus_cache)
+    raw = ini_read(ini_path(), 'send', 'keep_focus', '1')
+    if raw is None or str(raw).strip() == '':
+        raw = '1'
+    _keep_focus_cache = str(raw).strip() == '1'
+    return bool(_keep_focus_cache)
+
+
+def set_keep_focus(on):
+    global _keep_focus_cache
+    _keep_focus_cache = bool(on)
+    ini_write(ini_path(), 'send', 'keep_focus', '1' if on else '0')
 
 
 def get_source_echo():

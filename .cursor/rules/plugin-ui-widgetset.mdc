@@ -1,0 +1,26 @@
+---
+description: Widgetset-blind plugin dialogs (LCL gtk2 Linux vs win32)
+alwaysApply: true
+---
+
+# Plugin screens — build for both OSs, stay gtk2
+
+Linux CudaText stays **gtk2** (mature LCL). gtk3/Qt is another binary, not
+a cure. Pain is LCL gtk2 vs LCL win32. Write every new surface **blind**.
+
+**Do**
+
+- `dlg_proc` + **Align** / `a_r` `a_b` / `sp_*`. OK/Cancel in a footer
+  **outside** the pages. `DLG_SCALE`.
+- Grow with **tree + one visible panel**. Never TPageControl client rects
+  (gtk2 returns `-1`; win32 `0`).
+- Clicks: `module=cuda_statghost;cmd=…;info=…;` — gtk2 ignores Python
+  bound `on_change` on TButton. Toolbar/side = `DATA1` like the main bar.
+- New pages = new tree node, not more `pos=` stacked on OK.
+- TF the dialog on **gtk2 Linux and Win32**.
+
+**Don't**
+
+- `dlg_custom` packing `pos=` against OK/Cancel (“Detected” embolado).
+- Assume Windows pixels on gtk2 (or the reverse).
+- Rebuild the editor gtk3/Qt to “fix” a plugin form.

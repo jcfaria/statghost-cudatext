@@ -66,7 +66,13 @@ New classroom action:
   4. If it should appear on the toolbar: add a row in chrome.py _TB
 
 Config (Options → Settings-plugins → STATghost → Config):
+  dlg_proc: tree Send | Chrome | Host + OK/Cancel footer (does not
+  stack; Detected lives on Host). Cancel is default. Nav width =
+  longest node + 20% slack (DLG_SCALE; gtk2 and win32).
   [host] exe=  — STATghost binary (empty = auto-detect)
+  [send] keep_focus=1 (default): after plugin Send, STATghost restores
+    CudaText (EVAL_KEEP). Does not rewrite Settings → Focus after eval;
+    sniper inside STATghost still uses that radio.
   [send] collapse=1 (default): join editor wraps into one EVAL line
     (comma / `(` / `[`). `{` blocks keep newlines between statements.
     STATghost then echoes 1 line as `>` and 2+ as original wraps

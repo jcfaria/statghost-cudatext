@@ -101,6 +101,16 @@ class TestProtocol(unittest.TestCase):
         self.assertEqual(cmd, protocol.CMD_EVAL)
         self.assertEqual(body, '1 + 1')
 
+    def test_eval_keep_roundtrip(self):
+        msg = protocol.make_eval('1 + 1', keep_focus=True)
+        cmd, body = protocol.parse_message(msg)
+        self.assertEqual(cmd, protocol.CMD_EVAL_KEEP)
+        self.assertEqual(body, '1 + 1')
+        plain = protocol.make_eval('1 + 1')
+        cmd, body = protocol.parse_message(plain)
+        self.assertEqual(cmd, protocol.CMD_EVAL)
+        self.assertEqual(body, '1 + 1')
+
     def test_clear_token(self):
         msg = protocol.make_command(protocol.CMD_CLEAR)
         cmd, body = protocol.parse_message(msg)
@@ -375,6 +385,52 @@ class TestChromeShow(unittest.TestCase):
         self.assertEqual(back['clear'], True)
         short = chrome_show.decode_checklist('0;1', keys, fallback=on)
         self.assertEqual(short, on)
+
+    def test_config_source_is_dlg_proc_pages(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, 'config.py'), encoding='utf-8') as fh:
+            text = fh.read()
+        self.assertIn("PAGES = ('Send', 'Chrome', 'Host')", text)
+        self.assertIn('dlg_proc', text)
+        self.assertNotIn('from cudatext import dlg_custom', text)
+        self.assertIn('cmd=config_dlg', text)
+        self.assertIn('Keep editor focused after Send', text)
+        self.assertIn('keep_focus', text)
+        self.assertIn('ALIGN_CLIENT', text)
+        self.assertIn('a_r', text)
+
+    def test_config_nav_width_is_longest_plus_20pct(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(here, 'config.py')
+        with open(path, encoding='utf-8') as fh:
+            lines = fh.readlines()
+        text = ''.join(lines).replace('\r\n', '\n')
+        self.assertIn('_TREE_SLACK = 1.20', text)
+        self.assertIn('def _apply_nav_width(', text)
+        start = next(
+            i for i, line in enumerate(lines) if line.startswith('_TREE_SLACK')
+        )
+        consts_end = next(
+            i for i, line in enumerate(lines) if line.startswith('_EMU_CHAR')
+        )
+        fn_start = next(
+            i for i, line in enumerate(lines) if line.startswith('def nav_width')
+        )
+        fn_end = next(
+            i for i, line in enumerate(lines[fn_start + 1 :], fn_start + 1)
+            if line.startswith('def ')
+        )
+        ns = {}
+        exec(
+            ''.join(lines[start:consts_end + 1] + ['\n'] + lines[fn_start:fn_end]),
+            ns,
+        )
+        nav_width = ns['nav_width']
+        # 100 * 1.20 + 24 gutter
+        self.assertEqual(nav_width(100), 144)
+        self.assertEqual(nav_width(0), ns['_TREE_MIN'])
+        self.assertEqual(nav_width(9999), ns['_TREE_MAX'])
+        self.assertLess(nav_width(48), 150)
 
     def test_cli_cycle_subset(self):
         self.assertTrue(chrome_show.CYCLE_METHODS <= chrome_show.CLI_METHODS)

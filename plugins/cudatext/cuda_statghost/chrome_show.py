@@ -149,7 +149,7 @@ CYCLE_METHODS = frozenset((
 
 
 def encode_checklist(show_on, keys):
-    """dlg_custom checklistbox val: `index;0,1,0,…`."""
+    """dlg_proc / dlg_custom checklistbox val: `index;0,1,0,…`."""
     bits = ['1' if show_on.get(k) else '0' for k in keys]
     return '0;' + ','.join(bits)
 
