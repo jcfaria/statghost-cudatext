@@ -329,8 +329,14 @@ def on_dlg(id_dlg, info):
         dlg_proc(id_dlg, DLG_HIDE)
 
 
+def _memo_flat(h, name):
+    """Memo val is TAB-separated lines; a path must stay one line."""
+    raw = str(_get(h, name).get('val') or '')
+    return raw.replace('\t', '').replace('\r', '').replace('\n', '').strip()
+
+
 def _commit(h):
-    path = str(_get(h, 'exe').get('val') or '').strip()
+    path = _memo_flat(h, 'exe')
     if path and (not os.path.isfile(path)):
         msg_status(PLUGIN + ': file not found — ' + path)
         _show_page(PAGES.index('Host'))
@@ -387,46 +393,54 @@ def _fill_send(h, collapse, keep_focus, src_echo, enc_idx, pipe_idx):
         'val': '1' if keep_focus else '0',
         'x': 12, 'y': 44, 'w': 200, 'h': 26, **stretch,
     })
-    _add(h, 'label', {
+    # label ex0 = right-align (clips "Sniper" to "niper"). Memo ex3 wraps.
+    _add(h, 'memo', {
         'name': 'keep_hint', 'p': 'page_send',
-        'cap': 'Asks STATghost to return to CudaText for this eval. '
-               'Sniper inside STATghost still uses Settings → Behavior → Focus after eval.',
-        'x': 12, 'y': 72, 'w': 200, 'h': 40, **stretch,
+        'val': (
+            'Asks STATghost to return to CudaText for this eval.\t'
+            'Sniper inside STATghost still uses Settings → Behavior → '
+            'Focus after eval.'
+        ),
+        'x': 12, 'y': 72, 'w': 200, 'h': 56, **stretch,
         'ex0': True,
+        'ex1': False,
+        'ex2': False,
+        'ex3': True,
+        'tab_stop': False,
     })
     _add(h, 'check', {
         'name': 'collapse', 'p': 'page_send',
         'cap': 'Send wraps as one Console line',
         'val': '1' if collapse else '0',
-        'x': 12, 'y': 120, 'w': 200, 'h': 26, **stretch,
+        'x': 12, 'y': 140, 'w': 200, 'h': 26, **stretch,
     })
     _add(h, 'check', {
         'name': 'src_echo', 'p': 'page_send',
         'cap': 'Source file: echo = TRUE',
         'val': '1' if src_echo else '0',
-        'x': 12, 'y': 152, 'w': 200, 'h': 26, **stretch,
+        'x': 12, 'y': 172, 'w': 200, 'h': 26, **stretch,
     })
     _add(h, 'label', {
         'name': 'enc_lbl', 'p': 'page_send',
         'cap': 'Source file encoding',
-        'x': 12, 'y': 194, 'w': 200, 'h': 22,
+        'x': 12, 'y': 214, 'w': 200, 'h': 22,
     })
     _add(h, 'combo_ro', {
         'name': 'enc', 'p': 'page_send',
         'items': '\t'.join(_encs),
         'val': str(enc_idx),
-        'x': 220, 'y': 190, 'w': 160, 'h': 28, **stretch,
+        'x': 220, 'y': 210, 'w': 160, 'h': 28, **stretch,
     })
     _add(h, 'label', {
         'name': 'pipe_lbl', 'p': 'page_send',
         'cap': 'Insert pipe (Ctrl+Shift+M)',
-        'x': 12, 'y': 236, 'w': 200, 'h': 22,
+        'x': 12, 'y': 256, 'w': 200, 'h': 22,
     })
     _add(h, 'combo_ro', {
         'name': 'pipe', 'p': 'page_send',
         'items': '\t'.join(_PIPE_ITEMS),
         'val': str(pipe_idx),
-        'x': 220, 'y': 232, 'w': 160, 'h': 28, **stretch,
+        'x': 220, 'y': 252, 'w': 160, 'h': 28, **stretch,
     })
 
 
@@ -492,46 +506,55 @@ def _fill_chrome(h, icons_idx, show_on):
 def _fill_host(h, path, det_cap):
     stretch = {'a_r': ('', ']'), 'sp_r': 12}
     _add(h, 'panel', {
-        'name': 'host_head', 'p': 'page_host',
-        'align': ALIGN_TOP, 'h': 136,
+        'name': 'host_exe', 'p': 'page_host',
+        'align': ALIGN_TOP, 'h': 118,
+    })
+    _add(h, 'panel', {
+        'name': 'host_det', 'p': 'page_host',
+        'align': ALIGN_TOP, 'h': 92,
     })
     _add(h, 'label', {
-        'name': 'exe_lbl', 'p': 'host_head',
+        'name': 'exe_lbl', 'p': 'host_exe',
         'cap': 'STATghost executable',
-        'x': 12, 'y': 12, 'w': 200, 'h': 22, **stretch,
+        'x': 12, 'y': 8, 'w': 200, 'h': 22, **stretch,
     })
     _add(h, 'button', {
-        'name': 'btn_browse', 'p': 'host_head',
+        'name': 'btn_browse', 'p': 'host_exe',
         'cap': 'Browse…',
-        'w': 96, 'h': 28, 'y': 40,
+        'w': 96, 'h': 28, 'y': 36,
         'a_l': None, 'a_t': None,
         'a_r': ('', ']'), 'a_b': None,
         'sp_r': 12,
         'on_change': _CB % 'browse',
     })
-    _add(h, 'edit', {
-        'name': 'exe', 'p': 'host_head',
+    _add(h, 'memo', {
+        'name': 'exe', 'p': 'host_exe',
         'val': path,
-        'x': 12, 'y': 40, 'w': 200, 'h': 28,
+        'x': 12, 'y': 32, 'w': 200, 'h': 52,
         'a_r': ('btn_browse', '['), 'sp_r': 8,
+        'ex0': False,
+        'ex1': False,
+        'ex2': True,
+        'ex3': True,
     })
     _add(h, 'label', {
-        'name': 'exe_hint', 'p': 'host_head',
+        'name': 'exe_hint', 'p': 'host_exe',
         'cap': 'Empty = auto-detect (sibling clone, then PATH).',
-        'x': 12, 'y': 78, 'w': 200, 'h': 22, **stretch,
+        'x': 12, 'y': 90, 'w': 200, 'h': 22, **stretch,
     })
     _add(h, 'label', {
-        'name': 'det_lbl', 'p': 'host_head',
+        'name': 'det_lbl', 'p': 'host_det',
         'cap': 'Detected',
-        'x': 12, 'y': 108, 'w': 200, 'h': 22, **stretch,
+        'x': 12, 'y': 8, 'w': 200, 'h': 22, **stretch,
     })
     _add(h, 'memo', {
-        'name': 'detected', 'p': 'page_host',
+        'name': 'detected', 'p': 'host_det',
         'val': det_cap,
-        'align': ALIGN_CLIENT,
-        'sp_l': 12, 'sp_r': 12, 'sp_t': 4, 'sp_b': 12,
+        'x': 12, 'y': 32, 'w': 200, 'h': 52, **stretch,
         'ex0': True,
-        'ex1': True,
+        'ex1': False,
+        'ex2': True,
+        'ex3': True,
         'tab_stop': False,
     })
 

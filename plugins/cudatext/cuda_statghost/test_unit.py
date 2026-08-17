@@ -398,6 +398,14 @@ class TestChromeShow(unittest.TestCase):
         self.assertIn('keep_focus', text)
         self.assertIn('ALIGN_CLIENT', text)
         self.assertIn('a_r', text)
+        self.assertIn("'name': 'keep_hint'", text)
+        self.assertIn("'name': 'host_exe'", text)
+        self.assertIn("'name': 'host_det'", text)
+        send = text.split('def _fill_send', 1)[1].split('def _fill_chrome', 1)[0]
+        self.assertIn("'ex3': True", send)
+        host_fn = text.split('def _fill_host', 1)[1].split('def show_config', 1)[0]
+        self.assertNotIn('ALIGN_CLIENT', host_fn)
+        self.assertIn("'ex3': True", host_fn)
 
     def test_config_nav_width_is_longest_plus_20pct(self):
         here = os.path.dirname(os.path.abspath(__file__))
