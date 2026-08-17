@@ -134,7 +134,7 @@ class TestFunctionalLive(unittest.TestCase):
             )
         if not set_clip(protocol.make_command(protocol.CMD_ARM)):
             raise unittest.SkipTest('could not put ARM on the clipboard')
-        time.sleep(0.6)
+        time.sleep(ARM_WAIT_S)
 
     def test_01_host_up(self):
         self.assertTrue(host.is_running())
